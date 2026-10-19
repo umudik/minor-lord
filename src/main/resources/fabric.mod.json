@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "minor_lord",
+  "version": "${version}",
+  "name": "Minor Lord",
+  "description": "An entirely server-side Minecraft Fabric mod. No client installation required.",
+  "environment": "server",
+  "entrypoints": {
+    "main": ["io.github.umudik.minorlord.MinorLord"]
+  },
+  "mixins": ["minor_lord.mixins.json"],
+  "contact": {"sources": "https://github.com/umudik/minor-lord"},
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.163.0"
+  }
+}

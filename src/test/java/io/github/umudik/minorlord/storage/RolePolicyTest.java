@@ -1,0 +1,78 @@
+package io.github.umudik.minorlord.storage;
+
+import static org.junit.jupiter.api.Assertions.*;
+import io.github.umudik.minorlord.roles.*;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+
+class RolePolicyTest {
+    @Test void exactApprovedThresholdsPreserveStackUnitsAndUnlimitedCook() {
+        for (var role : List.of(Role.FLETCHER, Role.WEAPONSMITH, Role.TOOLSMITH, Role.ARMORER,
+                Role.LEATHERWORKER, Role.CARTOGRAPHER)) {
+            assertEquals(5, StockLimits.threshold(role, 64).orElseThrow());
+            assertTrue(StockLimits.shouldStart(role, 4, 64));
+            assertFalse(StockLimits.shouldStart(role, 5, 64));
+        }
+        assertEquals(320, StockLimits.threshold(Role.MASON, 64).orElseThrow());
+        assertEquals(80, StockLimits.threshold(Role.MASON, 16).orElseThrow());
+        assertTrue(StockLimits.shouldStart(Role.MASON, 79, 16));
+        assertFalse(StockLimits.shouldStart(Role.MASON, 80, 16));
+        assertTrue(StockLimits.threshold(Role.COOK, 64).isEmpty());
+        assertTrue(StockLimits.shouldStart(Role.COOK, Long.MAX_VALUE, 64));
+        assertTrue(StockLimits.threshold(Role.CLERIC, 1).isEmpty());
+        assertTrue(StockLimits.threshold(Role.LIBRARIAN, 1).isEmpty());
+    }
+
+    @Test void invalidStockInputsAreRejected() {
+        assertThrows(IllegalArgumentException.class, () -> StockLimits.threshold(Role.MASON, 0));
+        assertThrows(IllegalArgumentException.class, () -> StockLimits.shouldStart(Role.FLETCHER, -1, 64));
+    }
+
+    @Test void vanillaWorkMayNotOverrideFearRestOrSleep() {
+        assertTrue(WorkGate.allows(new WorkGate.State(true, true, true, false, false, false, false)));
+        assertFalse(WorkGate.allows(new WorkGate.State(true, true, true, true, false, false, false)));
+        assertFalse(WorkGate.allows(new WorkGate.State(true, true, true, false, true, false, false)));
+        assertFalse(WorkGate.allows(new WorkGate.State(true, true, true, false, false, true, false)));
+        assertFalse(WorkGate.allows(new WorkGate.State(true, true, true, false, false, false, true)));
+        assertFalse(WorkGate.allows(new WorkGate.State(true, true, false, false, false, false, false)));
+        assertFalse(WorkGate.allows(new WorkGate.State(false, true, true, false, false, false, false)));
+    }
+
+    @Test void membershipDoesNotImplicitlyManageOtherVillagers() {
+        var registry = new ManagedVillagers();
+        var managed = UUID.randomUUID();
+        var other = UUID.randomUUID();
+        assertTrue(registry.find(managed).isEmpty());
+        registry.assign(managed, new ManagedVillagers.Assignment(UUID.randomUUID(), Role.CHESTER));
+        assertEquals(Role.CHESTER, registry.find(managed).orElseThrow().role());
+        assertTrue(registry.find(other).isEmpty());
+        registry.clear();
+        assertTrue(registry.find(managed).isEmpty());
+    }
+
+    @Test void chestStockCountsOnlyProvidedExactResourceWithoutDuplicateHalves() {
+        var first = InventoryTransfersTest.endpoint("a", new TestStorage("iron", 3, 64));
+        var second = InventoryTransfersTest.endpoint("b", new TestStorage("iron", 2, 64));
+        var wrong = InventoryTransfersTest.endpoint("c", new TestStorage("gold", 64, 64));
+        assertEquals(5, ChestStock.countExact("iron", List.of(first, second, wrong)));
+        var duplicate = new InventoryTransfers.Endpoint<String>(Set.of("a", "d"), new TestStorage("iron", 3, 64));
+        assertThrows(IllegalArgumentException.class, () -> ChestStock.countExact("iron", List.of(first, duplicate)));
+    }
+
+    @Test void changeQueueOnlyReevaluatesAffectedWorkersAndDeduplicates() {
+        var queue = new InventoryWorkQueue();
+        var affected = UUID.randomUUID();
+        var unrelated = UUID.randomUUID();
+        queue.watch("sugar", affected);
+        queue.watch("iron", unrelated);
+        queue.changed("sugar");
+        queue.changed("sugar");
+        assertEquals(List.of(affected), queue.drain(100));
+        assertTrue(queue.drain(100).isEmpty());
+        queue.changed("iron");
+        queue.unwatch(unrelated);
+        assertTrue(queue.drain(100).isEmpty());
+    }
+}

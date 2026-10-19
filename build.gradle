@@ -1,0 +1,85 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories { mavenCentral() }
+
+loom { serverOnlyMinecraftJar() }
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "net.fabricmc:fabric-loader-junit:${loader_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'fabric.side', 'server'
+}
+
+// Separate opt-in local server probes; never included in the production mod JAR.
+sourceSets {
+    localIntegration {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    localIntegrationImplementation.extendsFrom implementation
+    localIntegrationRuntimeOnly.extendsFrom runtimeOnly
+}
+tasks.register('localIntegrationJar', Jar) {
+    dependsOn localIntegrationClasses
+    archiveClassifier = 'local-checks'
+    destinationDirectory = layout.buildDirectory.dir('local-probes')
+    from sourceSets.localIntegration.output
+    manifest { attributes 'Agent-Class': 'io.github.umudik.minorlord.local.LocalProbeAgent' }
+}
+tasks.register('localDiagnosticsJar', Jar) {
+    dependsOn localIntegrationClasses
+    archiveClassifier = 'local-diagnostics'
+    destinationDirectory = layout.buildDirectory.dir('local-probes')
+    from sourceSets.localIntegration.output
+    manifest { attributes 'Agent-Class': 'io.github.umudik.minorlord.local.LocalDiagnosticAgent' }
+}
+tasks.register('localMineConfigurationJar', Jar) {
+    dependsOn localIntegrationClasses
+    archiveClassifier = 'local-mine-configuration'
+    destinationDirectory = layout.buildDirectory.dir('local-probes')
+    from sourceSets.localIntegration.output
+    manifest { attributes 'Agent-Class': 'io.github.umudik.minorlord.local.LocalMineConfigurationAgent' }
+}
+tasks.register('localWorldArenaJar', Jar) {
+    dependsOn localIntegrationClasses
+    archiveClassifier = 'local-world-arena'
+    destinationDirectory = layout.buildDirectory.dir('local-probes')
+    from sourceSets.localIntegration.output
+    manifest { attributes 'Agent-Class': 'io.github.umudik.minorlord.local.LocalWorldArenaAgent' }
+}
+tasks.register('localArenaInspectionJar', Jar) {
+    dependsOn localIntegrationClasses
+    archiveClassifier = 'local-arena-inspection'
+    destinationDirectory = layout.buildDirectory.dir('local-probes')
+    from sourceSets.localIntegration.output
+    manifest { attributes 'Agent-Class': 'io.github.umudik.minorlord.local.LocalArenaInspectionAgent' }
+}

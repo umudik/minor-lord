@@ -1,0 +1,30 @@
+package io.github.umudik.minorlord.roles;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Explicit village-owned membership. Call only on the server thread; no global villager matching. */
+public final class ManagedVillagers {
+    public record Assignment(UUID villageId, Role role) {
+        public Assignment {
+            Objects.requireNonNull(villageId, "villageId");
+            Objects.requireNonNull(role, "role");
+        }
+    }
+
+    private final Map<UUID, Assignment> assignments = new HashMap<>();
+
+    public Optional<Assignment> find(UUID villagerId) {
+        return Optional.ofNullable(assignments.get(villagerId));
+    }
+
+    public void assign(UUID villagerId, Assignment assignment) {
+        assignments.put(Objects.requireNonNull(villagerId), Objects.requireNonNull(assignment));
+    }
+
+    public void remove(UUID villagerId) { assignments.remove(villagerId); }
+    public void clear() { assignments.clear(); }
+}
