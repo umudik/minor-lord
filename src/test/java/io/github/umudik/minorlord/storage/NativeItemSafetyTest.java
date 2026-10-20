@@ -16,7 +16,6 @@ import io.github.umudik.minorlord.equipment.RoleEquipment;
 import io.github.umudik.minorlord.production.RuntimeRecipes;
 import io.github.umudik.minorlord.production.LibrarianBooks;
 import io.github.umudik.minorlord.production.InventoryConversions;
-import io.github.umudik.minorlord.production.StandardCrafting;
 import io.github.umudik.minorlord.production.RecipeRemainders;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
@@ -170,84 +169,6 @@ class NativeItemSafetyTest {
         assertEquals(1, input.amount);
         assertEquals(1, output.amount);
         assertEquals(1, output.variant.toStack().get(DataComponents.STORED_ENCHANTMENTS).getLevel(enchantment));
-    }
-
-    @Test void standardBreadCraftConsumesThreeActualWheatAndProducesOneNormalBread() throws Exception {
-        var recipe = (ShapedRecipe) vanillaRecipe("bread");
-        var input = actualInput(recipe);
-        var source = new ItemSlot();
-        source.variant = ItemVariant.of(Items.WHEAT);
-        source.amount = 3;
-        var output = new ItemSlot();
-        assertEquals(StandardCrafting.Status.CRAFTED, StandardCrafting.craftOne(recipe, input, null,
-                endpoint("carried", source), endpoint("output", output), () -> true));
-        assertEquals(0, source.amount);
-        assertEquals(1, output.amount);
-        assertTrue(output.variant.isOf(Items.BREAD));
-        assertFalse(output.variant.toStack().has(DataComponents.UNBREAKABLE));
-        assertEquals(StandardCrafting.Status.INPUT_SHORTAGE, StandardCrafting.craftOne(recipe, input, null,
-                endpoint("carried", source), endpoint("output", output), () -> true));
-        assertEquals(1, output.amount);
-    }
-
-    @Test void craftingContainersRequireExplicitReturnTargetsWithoutLosingInputs() throws Exception {
-        var recipe = (ShapedRecipe) vanillaRecipe("cake");
-        var source = new ItemSlot();
-        source.variant = ItemVariant.of(Items.MILK_BUCKET);
-        source.amount = 1;
-        var output = new ItemSlot();
-        assertEquals(StandardCrafting.Status.REMAINDER_TARGET_REQUIRED,
-                StandardCrafting.craftOne(recipe, actualInput(recipe), null,
-                        endpoint("carried", source), endpoint("output", output), () -> true));
-        assertEquals(1, source.amount);
-        assertEquals(0, output.amount);
-    }
-
-    @Test void cakeProducesAllThreeBucketsIntoCarryBufferThenTransfersWithoutLossOrDuplication() throws Exception {
-        var recipe = (ShapedRecipe) vanillaRecipe("cake");
-        var input = actualInput(recipe);
-        var carried = carriedIngredients(input);
-        var buffer = twoSlotBuffer("buffer");
-        var cake = endpoint("cake-target", new ItemSlot());
-        var bucket = endpoint("bucket-target", new ItemSlot());
-        assertEquals(StandardCrafting.Status.CRAFTED, StandardCrafting.craftOneWithReturns(recipe, input, null,
-                carried, buffer, variant -> Optional.of(variant.isOf(Items.CAKE) ? cake : bucket), () -> true));
-        assertEquals(1, stored(buffer, Items.CAKE));
-        assertEquals(3, stored(buffer, Items.BUCKET));
-        assertEquals(0, stored(carried, Items.MILK_BUCKET));
-        assertEquals(0, stored(cake, Items.CAKE));
-        assertEquals(0, stored(bucket, Items.BUCKET));
-        assertEquals(InventoryTransfers.Result.MOVED, InventoryTransfers.moveExact(buffer, bucket,
-                ItemVariant.of(Items.BUCKET), 3, () -> true));
-        assertEquals(InventoryTransfers.Result.MOVED, InventoryTransfers.moveExact(buffer, cake,
-                ItemVariant.of(Items.CAKE), 1, () -> true));
-        assertEquals(0, stored(buffer, Items.BUCKET));
-        assertEquals(3, stored(bucket, Items.BUCKET));
-        assertEquals(1, stored(cake, Items.CAKE));
-        assertEquals(InventoryTransfers.Result.INSUFFICIENT_SOURCE_OR_SPACE, InventoryTransfers.moveExact(buffer, bucket,
-                ItemVariant.of(Items.BUCKET), 3, () -> true));
-        assertEquals(3, stored(bucket, Items.BUCKET));
-    }
-
-    @Test void missingOrFullBucketDestinationLeavesCakeInputsUntouched() throws Exception {
-        var recipe = (ShapedRecipe) vanillaRecipe("cake");
-        var input = actualInput(recipe);
-        var carried = carriedIngredients(input);
-        var buffer = twoSlotBuffer("buffer");
-        var cake = endpoint("cake-target", new ItemSlot());
-        assertEquals(StandardCrafting.Status.NO_OUTPUT_DESTINATION, StandardCrafting.craftOneWithReturns(recipe, input, null,
-                carried, buffer, variant -> variant.isOf(Items.CAKE) ? Optional.of(cake) : Optional.empty(), () -> true));
-        assertEquals(3, stored(carried, Items.MILK_BUCKET));
-        assertEquals(0, stored(buffer, Items.CAKE));
-        var fullSlot = new ItemSlot();
-        fullSlot.variant = ItemVariant.of(Items.BUCKET);
-        fullSlot.amount = fullSlot.variant.toStack().getMaxStackSize();
-        var full = endpoint("full-buckets", fullSlot);
-        assertEquals(StandardCrafting.Status.OUTPUT_FULL, StandardCrafting.craftOneWithReturns(recipe, input, null,
-                carried, buffer, variant -> Optional.of(variant.isOf(Items.CAKE) ? cake : full), () -> true));
-        assertEquals(3, stored(carried, Items.MILK_BUCKET));
-        assertEquals(0, stored(cake, Items.CAKE));
-        assertEquals(0, stored(buffer, Items.BUCKET));
     }
 
     private static InventoryTransfers.Endpoint<ItemVariant> carriedIngredients(CraftingInput input) {

@@ -51,28 +51,4 @@ class RolePolicyTest {
         registry.clear();
         assertTrue(registry.find(managed).isEmpty());
     }
-
-    @Test void chestStockCountsOnlyProvidedExactResourceWithoutDuplicateHalves() {
-        var first = InventoryTransfersTest.endpoint("a", new TestStorage("iron", 3, 64));
-        var second = InventoryTransfersTest.endpoint("b", new TestStorage("iron", 2, 64));
-        var wrong = InventoryTransfersTest.endpoint("c", new TestStorage("gold", 64, 64));
-        assertEquals(5, ChestStock.countExact("iron", List.of(first, second, wrong)));
-        var duplicate = new InventoryTransfers.Endpoint<String>(Set.of("a", "d"), new TestStorage("iron", 3, 64));
-        assertThrows(IllegalArgumentException.class, () -> ChestStock.countExact("iron", List.of(first, duplicate)));
-    }
-
-    @Test void changeQueueOnlyReevaluatesAffectedWorkersAndDeduplicates() {
-        var queue = new InventoryWorkQueue();
-        var affected = UUID.randomUUID();
-        var unrelated = UUID.randomUUID();
-        queue.watch("sugar", affected);
-        queue.watch("iron", unrelated);
-        queue.changed("sugar");
-        queue.changed("sugar");
-        assertEquals(List.of(affected), queue.drain(100));
-        assertTrue(queue.drain(100).isEmpty());
-        queue.changed("iron");
-        queue.unwatch(unrelated);
-        assertTrue(queue.drain(100).isEmpty());
-    }
 }

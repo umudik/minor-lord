@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
 
-/** Selects only caller-authorized candidates; does not scan chunks or choose unresolved tie rules. */
+/** The chest ranking rule: most specific matching label first, then distance; equal results are returned together. */
 public final class NearestChestTargets {
     private NearestChestTargets() {}
 

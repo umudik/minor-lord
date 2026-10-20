@@ -30,10 +30,10 @@ public final class ChesterTask implements WorkSession.Task<Villager> {
                 boolean garbage=VillageInventories.garbage(level,p);
                 var endpoint=LiveChestAccess.resolve(level,p);if(endpoint.isEmpty())continue;
                 for(var view:endpoint.get().storage()){
-                    if(view.isResourceBlank() || view.getAmount()==0 || VillageInventories.matches(level,p,view.getResource()))continue;
+                    if(view.isResourceBlank() || view.getAmount()==0)continue;
                     long count=Math.min(view.getAmount(),view.getResource().getItem().getDefaultMaxStackSize());
                     if(StorageUtil.simulateInsert(carried.storage(),view.getResource(),count,null)!=count)continue;
-                    if(!destination(villager,view.getResource(),count,garbage))continue;
+                    if(!destination(villager,p,view.getResource(),count,garbage))continue;
                     source=p;variant=view.getResource();amount=count;break outer;
                 }
             }
@@ -43,14 +43,22 @@ public final class ChesterTask implements WorkSession.Task<Villager> {
         var from=LiveChestAccess.resolve(level,source);
         boolean fromGarbage=VillageInventories.garbage(level,source);
         if(from.isPresent()) InventoryTransfers.moveExact(from.get(),carried,variant,amount,
-            ()->Delivery.arrived(villager,source) && !VillageInventories.matches(level,source,variant)
-                && destination(villager,variant,amount,fromGarbage));
+            ()->Delivery.arrived(villager,source) && destination(villager,source,variant,amount,fromGarbage));
         source=null;walk.release(villager);checked=-1;
         return WorkSession.Step.CONTINUE;
     }
-    private boolean destination(Villager villager,ItemVariant item,long amount,boolean fromGarbage){
-        return fromGarbage?VillageInventories.nearest(villager,home,item,amount).isPresent()
-            :VillageInventories.fallback(villager,home,item,amount,false).isPresent();
+    /**
+     * Whether an item should leave this chest, and has somewhere better to go. Unlabelled or non-matching chests send
+     * it to its best chest (or garbage). A matching chest gives it up only to a strictly more specific label, so early
+     * broad chests (copper) feed later specific ones (raw_copper) without items ever bouncing back. Garbage holds an
+     * item until a chest labelled for it exists.
+     */
+    private boolean destination(Villager villager,BlockPos source,ItemVariant item,long amount,boolean fromGarbage){
+        var level=(ServerLevel)villager.level();
+        if(fromGarbage)return VillageInventories.nearest(villager,home,item,amount).isPresent();
+        int here=VillageInventories.specificity(level,source,item);
+        if(here<0)return VillageInventories.fallback(villager,home,item,amount,false).isPresent();
+        return VillageInventories.nearest(villager,home,item,amount).filter(target->VillageInventories.specificity(level,target,item)>here).isPresent();
     }
     @Override public void pause(Villager villager){walk.release(villager);}
 }

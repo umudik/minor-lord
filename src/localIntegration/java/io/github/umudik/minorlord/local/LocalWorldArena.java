@@ -191,6 +191,8 @@ public final class LocalWorldArena {
                 post(r.x+3,Y,r.z+11,"balik testi","suda yuzme yok","vanilla loot","sandiga teslim");r.expected="gercek balik -> sandik";}
             default->throw new AssertionError(r.role);
         }
+        // Bait: an unclaimed lectern in every extra-role room. The worker must never take it as a vanilla profession.
+        if(r.role!=null&&RoleController.extra(r.role))put(r.x+12,Y,r.z+13,Blocks.LECTERN);
         r.home=post(r.x+8,Y,r.z+9,"village","8x9");
         post(r.x+6,Y,r.z-1,String.format("%02d %s",r.number,r.name()),r.expected,"sol: girdi","sag: sonuc");
         r.status=post(r.x+10,Y,r.z-1,"BEKLENIYOR","dogal NPC testi","hazirlaniyor");
@@ -240,6 +242,8 @@ public final class LocalWorldArena {
         // A worker in a chunk that unloaded (player walked away) is not dead: the room just pauses.
         if(r.worker.isRemoved()&&r.worker.getRemovalReason()==Entity.RemovalReason.UNLOADED_TO_CHUNK)return;
         if(!r.worker.isAlive()){r.failed=true;text(r.status,"FAIL: NPC oldu",r.name());return;}
+        if(r.role!=null&&RoleController.extra(r.role)&&!r.worker.getVillagerData().profession().is(VillagerProfession.NONE)){
+            r.failed=true;text(r.status,"FAIL: meslek aldi",r.name());return;}
         boolean ok=false;String detail="girdi / istasyon";
         if(r.role==null){long source=level.getBlockEntity(r.input) instanceof Container c?c.getItem(0).getCount():-1;
             boolean babyWait=r.baby!=null&&r.baby.isBaby()&&MinorLord.WORK_SESSIONS.find(r.baby.getUUID()).isEmpty();

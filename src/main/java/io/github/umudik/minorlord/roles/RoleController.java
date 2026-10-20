@@ -64,7 +64,8 @@ public final class RoleController {
         MinorLord.WORK_SESSIONS.removeFor(v);MinorLord.MANAGED_VILLAGERS.remove(v.getUUID());
         if(managed)WorkPackages.apply(v,Optional.empty());
     }
-    public static boolean namedMiner(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).filter(r->r==Role.MINER).isPresent();}
+    /** Extra roles are not vanilla professions: while the name tag stays they hold no job site or profession. */
+    public static boolean namedExtraRole(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).isPresent();}
     public static void renamed(Villager villager,ServerLevel level){
         RESTART.add(villager.getUUID());
         request(villager,level);
@@ -92,7 +93,7 @@ public final class RoleController {
         var explicit=villager.hasCustomName()?RoleNames.find(villager.getCustomName().getString()):Optional.<Role>empty();
         var role=explicit.or(()->NaturalProfessionRoles.find(villager.getVillagerData().profession()));
         boolean professionChanged=false;
-        if(explicit.filter(r->r==Role.MINER).isPresent()){
+        if(explicit.isPresent()){
             releaseJob(villager);
             if(!villager.getVillagerData().profession().is(VillagerProfession.NONE)){
                 villager.setVillagerData(villager.getVillagerData().withProfession(level.registryAccess(),VillagerProfession.NONE));

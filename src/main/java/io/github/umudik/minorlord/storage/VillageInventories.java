@@ -121,12 +121,16 @@ public final class VillageInventories {
     public static Optional<BlockPos> nearest(Villager villager,GlobalPos village,ItemVariant item,long amount) {
         var level=(ServerLevel)villager.level();
         String name=BuiltInRegistries.ITEM.getKey(item.getItem()).getPath();
-        return chests(level,village).stream().map(p->Map.entry(p,ChestNameFilter.specificity(name,labels(level,p)))).filter(e->e.getValue()>=0)
-            .filter(e->LiveChestAccess.resolve(level,e.getKey()).filter(c->StorageUtil.simulateInsert(c.storage(),item,amount,
-                Transaction.isOpen()?Transaction.getCurrentUnsafe():null)==amount).isPresent())
-            .min(Comparator.<Map.Entry<BlockPos,Integer>>comparingInt(e->-e.getValue())
-                .thenComparingDouble(e->e.getKey().distToCenterSqr(villager.position())).thenComparingLong(e->e.getKey().asLong()))
-            .map(Map.Entry::getKey);
+        var candidates=chests(level,village).stream().map(p->new NearestChestTargets.Candidate<>(p,labels(level,p))).toList();
+        return NearestChestTargets.find(name,candidates,
+                p->LiveChestAccess.resolve(level,p).filter(c->StorageUtil.simulateInsert(c.storage(),item,amount,
+                    Transaction.isOpen()?Transaction.getCurrentUnsafe():null)==amount).isPresent(),
+                p->p.distToCenterSqr(villager.position()))
+            .stream().min(Comparator.comparingLong(BlockPos::asLong));
+    }
+    /** How specifically this chest's labels describe the item (-1 when they do not match it). */
+    public static int specificity(ServerLevel level,BlockPos chest,ItemVariant item){
+        return ChestNameFilter.specificity(BuiltInRegistries.ITEM.getKey(item.getItem()).getPath(),labels(level,chest));
     }
     public static boolean garbage(ServerLevel level,BlockPos chest){return labels(level,chest).stream().anyMatch(s->s.equalsIgnoreCase("garbage"));}
     public static Optional<BlockPos> fallback(Villager villager,GlobalPos village,ItemVariant item,long amount,boolean allowUnlabelled){
