@@ -25,6 +25,13 @@ public final class ManagedVillagers {
         assignments.put(Objects.requireNonNull(villagerId), Objects.requireNonNull(assignment));
     }
 
+    /** Loaded members of one village with their roles. */
+    public Map<UUID, Role> members(UUID villageId) {
+        Map<UUID, Role> members = new HashMap<>();
+        assignments.forEach((id, a) -> { if (a.villageId().equals(villageId)) members.put(id, a.role()); });
+        return members;
+    }
+
     public void remove(UUID villagerId) { assignments.remove(villagerId); }
     public void clear() { assignments.clear(); }
 }

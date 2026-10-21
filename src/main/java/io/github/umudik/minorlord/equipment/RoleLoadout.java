@@ -27,6 +27,11 @@ public final class RoleLoadout {
     public static boolean pending(Villager v){return Boolean.TRUE.equals(((AttachmentTarget)v).getAttached(ACTIVE));}
     public static boolean sameRole(Villager v,Role role){return role.name().equals(((AttachmentTarget)v).getAttached(ROLE));}
     public static boolean known(Villager v){return ((AttachmentTarget)v).getAttached(ROLE)!=null;}
+    /** Gear this mod generated (older versions); it is never stored in a chest when replaced. */
+    public static boolean generated(Villager v,EquipmentSlot slot,ItemStack held){
+        var owned=((AttachmentTarget)v).getAttached(OWNED);
+        return owned!=null&&owned.stream().anyMatch(g->g.slot==slot&&ItemStack.isSameItemSameComponents(g.item,held));
+    }
     public static boolean hasEquipment(Villager v){return SLOTS.stream().anyMatch(s->!v.getItemBySlot(s).isEmpty());}
     public static void begin(Villager v){
         var a=(AttachmentTarget)v;var owned=Optional.ofNullable(a.getAttached(OWNED)).orElse(List.of());
@@ -49,8 +54,8 @@ public final class RoleLoadout {
     public static void complete(Villager v,Role role){((AttachmentTarget)v).removeAttached(ACTIVE);if(role!=null)equip(v,role);}
     public static void equip(Villager v,Role role){
         if(sameRole(v,role))return;
-        if(role==Role.WARRIOR||role==Role.ARCHER)CombatTask.equip(v,role);
-        else {Item item=switch(role){case MINER->Items.DIAMOND_PICKAXE;case CHESTER->Items.CHEST;case SHEPHERD->Items.SHEARS;case FISHERMAN->Items.FISHING_ROD;default->null;};
+        // Warriors, archers and miners equip real gear from the village chests (Armory); nothing is generated for them.
+        if(!Armory.uses(role)){Item item=switch(role){case CHESTER->Items.CHEST;case SHEPHERD->Items.SHEARS;case FISHERMAN->Items.FISHING_ROD;default->null;};
             if(item!=null&&v.getMainHandItem().isEmpty())v.setItemSlot(EquipmentSlot.MAINHAND,RoleEquipment.createUnbreakableCopy(new ItemStack(item)));
         }
         var owned=new ArrayList<Gear>();for(var slot:SLOTS)if(!v.getItemBySlot(slot).isEmpty()){owned.add(new Gear(slot,v.getItemBySlot(slot).copy()));v.setDropChance(slot,0);}

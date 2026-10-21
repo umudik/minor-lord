@@ -132,12 +132,13 @@ public final class VillageInventories {
     public static int specificity(ServerLevel level,BlockPos chest,ItemVariant item){
         return ChestNameFilter.specificity(BuiltInRegistries.ITEM.getKey(item.getItem()).getPath(),labels(level,chest));
     }
-    public static boolean garbage(ServerLevel level,BlockPos chest){return labels(level,chest).stream().anyMatch(s->s.equalsIgnoreCase("garbage"));}
+    /** A chest labelled any takes whatever has no chest of its own. */
+    public static boolean any(ServerLevel level,BlockPos chest){return labels(level,chest).stream().anyMatch(s->ChestNameFilter.normalize(s).equals(ChestNameFilter.ANY));}
     public static Optional<BlockPos> fallback(Villager villager,GlobalPos village,ItemVariant item,long amount,boolean allowUnlabelled){
         var specific=nearest(villager,village,item,amount);if(specific.isPresent())return specific;
         var level=(ServerLevel)villager.level();
-        var garbage=availableChest(villager,village,item,amount,p->garbage(level,p));
-        return garbage.isPresent()||!allowUnlabelled?garbage:availableChest(villager,village,item,amount,p->labels(level,p).isEmpty());
+        var any=availableChest(villager,village,item,amount,p->any(level,p));
+        return any.isPresent()||!allowUnlabelled?any:availableChest(villager,village,item,amount,p->labels(level,p).isEmpty());
     }
     private static Optional<BlockPos> availableChest(Villager v,GlobalPos home,ItemVariant item,long amount,java.util.function.Predicate<BlockPos> accepts){
         var level=(ServerLevel)v.level();return chests(level,home).stream().filter(accepts)

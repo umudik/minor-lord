@@ -17,6 +17,12 @@ class ChestSelectionTest {
         assertFalse(ChestNameFilter.matches("iron_ingot", "   "));
     }
 
+    @Test void anyIsTheCatchAllLabelNotANameFilter() {
+        assertFalse(ChestNameFilter.matches("company_banner", "any"));
+        assertFalse(ChestNameFilter.matches("company_banner", " ANY "));
+        assertEquals(-1, ChestNameFilter.specificity("company_banner", List.of("any")));
+    }
+
     @Test void labelsAreNormalizedTheWayPlayersWriteThem() {
         assertTrue(ChestNameFilter.matches("iron_ingot", "Iron"));
         assertTrue(ChestNameFilter.matches("iron_ingot", "iron ingot"));

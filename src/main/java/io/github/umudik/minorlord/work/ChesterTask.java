@@ -26,14 +26,14 @@ public final class ChesterTask implements WorkSession.Task<Villager> {
         if(source==null){
             checked=VillageInventories.chesterRevision(home);
             outer:for(var p:VillageInventories.chests(level,home).stream().sorted(Comparator.comparingDouble(p->p.distToCenterSqr(villager.position()))).toList()){
-                // A garbage chest is a holding area: an item leaves it only once a chest labelled for it exists.
-                boolean garbage=VillageInventories.garbage(level,p);
+                // An any chest is a holding area: an item leaves it only once a chest labelled for it exists.
+                boolean any=VillageInventories.any(level,p);
                 var endpoint=LiveChestAccess.resolve(level,p);if(endpoint.isEmpty())continue;
                 for(var view:endpoint.get().storage()){
                     if(view.isResourceBlank() || view.getAmount()==0)continue;
                     long count=Math.min(view.getAmount(),view.getResource().getItem().getDefaultMaxStackSize());
                     if(StorageUtil.simulateInsert(carried.storage(),view.getResource(),count,null)!=count)continue;
-                    if(!destination(villager,p,view.getResource(),count,garbage))continue;
+                    if(!destination(villager,p,view.getResource(),count,any))continue;
                     source=p;variant=view.getResource();amount=count;break outer;
                 }
             }
@@ -41,21 +41,21 @@ public final class ChesterTask implements WorkSession.Task<Villager> {
         if(source==null)return WorkSession.Step.CONTINUE;
         if(!Delivery.arrived(villager,source)){walk.offer(villager,source,0.5f,1);return WorkSession.Step.CONTINUE;}
         var from=LiveChestAccess.resolve(level,source);
-        boolean fromGarbage=VillageInventories.garbage(level,source);
+        boolean fromAny=VillageInventories.any(level,source);
         if(from.isPresent()) InventoryTransfers.moveExact(from.get(),carried,variant,amount,
-            ()->Delivery.arrived(villager,source) && destination(villager,source,variant,amount,fromGarbage));
+            ()->Delivery.arrived(villager,source) && destination(villager,source,variant,amount,fromAny));
         source=null;walk.release(villager);checked=-1;
         return WorkSession.Step.CONTINUE;
     }
     /**
      * Whether an item should leave this chest, and has somewhere better to go. Unlabelled or non-matching chests send
-     * it to its best chest (or garbage). A matching chest gives it up only to a strictly more specific label, so early
-     * broad chests (copper) feed later specific ones (raw_copper) without items ever bouncing back. Garbage holds an
+     * it to its best chest (or any). A matching chest gives it up only to a strictly more specific label, so early
+     * broad chests (copper) feed later specific ones (raw_copper) without items ever bouncing back. An any chest holds an
      * item until a chest labelled for it exists.
      */
-    private boolean destination(Villager villager,BlockPos source,ItemVariant item,long amount,boolean fromGarbage){
+    private boolean destination(Villager villager,BlockPos source,ItemVariant item,long amount,boolean fromAny){
         var level=(ServerLevel)villager.level();
-        if(fromGarbage)return VillageInventories.nearest(villager,home,item,amount).isPresent();
+        if(fromAny)return VillageInventories.nearest(villager,home,item,amount).isPresent();
         int here=VillageInventories.specificity(level,source,item);
         if(here<0)return VillageInventories.fallback(villager,home,item,amount,false).isPresent();
         return VillageInventories.nearest(villager,home,item,amount).filter(target->VillageInventories.specificity(level,target,item)>here).isPresent();

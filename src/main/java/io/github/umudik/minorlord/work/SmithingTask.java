@@ -35,11 +35,13 @@ public final class SmithingTask implements WorkSession.Task<Villager>{
             for(var template:templates)for(var base:bases)for(var addition:additions){
                 var proposed=new SmithingRecipeInput(template,base,addition);if(!candidate.matches(proposed,level))continue;
                 var output=candidate.assemble(proposed);var variant=ItemVariant.of(output);
-                if(output.isEmpty()||!accepts(output)||!StockLimits.shouldStart(role,WorkResources.stock(level,home,variant),output.getMaxStackSize())
+                var deficit=io.github.umudik.minorlord.production.Demand.deficit(level,home,output);
+                if(output.isEmpty()||!accepts(output)||(deficit.isPresent()?deficit.getAsLong()<=0:!StockLimits.shouldStart(role,WorkResources.stock(level,home,variant),output.getMaxStackSize()))
                     ||VillageInventories.nearest(v,home,variant,output.getCount()).isEmpty())continue;
                 Map<ItemVariant,Long> required=new LinkedHashMap<>();
                 for(var stack:List.of(template,base,addition))if(!stack.isEmpty())required.merge(ItemVariant.of(stack),1L,Long::sum);
                 long count=required.entrySet().stream().mapToLong(e->available.getOrDefault(e.getKey(),0L)/e.getValue()).min().orElse(0);
+                if(deficit.isPresent())count=Math.min(count,deficit.getAsLong());
                 if(count==0)continue;recipe=candidate;input=proposed;costs=required;remaining=count;return true;
             }
         }return false;

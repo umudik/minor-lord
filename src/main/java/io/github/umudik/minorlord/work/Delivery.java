@@ -10,7 +10,7 @@ import java.util.Optional;
 /** One real carried stack delivered only when the villager physically reaches the current target. */
 public final class Delivery {
     private Delivery(){}
-    /** A stack can be put away: a matching chest, else a garbage chest, with room for it. */
+    /** A stack can be put away: a matching chest, else an any chest, with room for it. */
     public static boolean deliverable(Villager villager,GlobalPos home,ItemVariant item,long amount){
         return VillageInventories.fallback(villager,home,item,amount,false).isPresent();
     }

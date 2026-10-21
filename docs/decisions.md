@@ -425,6 +425,30 @@ Bu bölüm yürürlükteki kuralları tanımlamaz; sonraki kullanıcı kararlar�
 
 - Native UNBREAKABLE yöntemine ilk itiraz, Unbreaking enchant ile item data component farkı açıklandıktan sonra son açık onayla aşıldı. Aktif yöntem armor/weapon/tool için minecraft:unbreakable component; cron/Mending+XP/per-tick repair seçilmedi. Kod henüz uygulanmadı.
 
+## Krallık yönü — 2026-10-22 kararları
+
+Hedef: oyuncunun kurduğu köylerin kendi kendine çalıştığı, pillager hakimiyetindeki bir dünyada büyüyen krallık hissi. Sadece server-side; oyunda olmayan blok, item veya mob yok, yalnız davranış eklenir. Köy düzeni, yapılar ve köy karakteri oyuncunun kararıdır; otomatik yapılaşma, köy seviyesi, yapay zekâ krallıkları ve otomatik kişilik istenmedi.
+
+- Asker ekipmanı: Warrior ve Archer gerçek silah, zırh ve oku etiketli sandıklardan alır; en iyisini vanilla değerlerine (hasar, zırh, toughness, enchant) göre seçer, daha iyisi gelince değiştirip eskisini sandığa koyar. Sandıktan gelen ekipman vanilla gibi aşınır (kırılmaz component uygulanmaz); üretim mevcut 5 adet eşiğiyle devam eder.
+- Miner aletleri: Miner da Warrior ve Archer gibi kazmayı ve aletlerini sandıklardan alır (en iyisini seçer, aşınır). Önceki 'Miner'a sade kırılmaz diamond kazma' kararının yerine geçer.
+- Sandık etiketi: catch-all sandık etiketi artık `any` (önceden `garbage`).
+- Üretim: tüm üretim yalnız sandıktaki gerçek malzemeyle olur (kılıç için 1 çubuk + 2 maden yoksa yapılmaz; kitap yoksa büyülü kitap yok). Malzemenin yettiği tüm çeşitler (bakır dahil) yapılabilir, en iyisi önce. Ekipman hedefi kullanan sayısı kadar: köyde toplam (sandık + üzerindeki) silah sayısı warrior sayısına, yay archer'a, kazma miner'a, her zırh parçası warrior+archer+miner sayısına ulaşınca durur. Kullanıcısı olmayan ürünlerde eski 5 adet kuralı kalır. Farmer tohum yoksa ekemez (vanilla).
+- Librarian hızı: her librarian günde 2 kitap üretir (yürüme hızına bağlı değil).
+- Açlık ve nüfus: köylüler acıkır, food sandıklarından yer. Çürük et gibi zararlı yiyecekler hariç her yemeği yer. Aç köylü çalışmaz ve üremez ama ölmez; doyunca işe döner. Yatak ve yemek varsa vanilla kurallarıyla ürer.
+- Devriye: sabit rota yok. Askerler köylülerin konumlarını arada bir kontrol eder; yan yana köylüler tek bakışla sayılır, en uzun süredir bakılmayan grup önce. Mob görürse savaşır, yoksa sıradakine geçer. Gündüz köylüleri kontrol ederler.
+- Korkusuz askerler: Warrior ve Archer korkmaz; hasar alınca veya düşman görünce panik yapmaz, çan çalınınca saklanmaz. Önceki 'Warrior/Archer için korkusuzluk istisnası eklenmedi' kaydının yerine geçer. Siviller vanilla korkusunu korur.
+- Askerlerin saati: askerler gündüz çalış/gece uyu kuralına tabi değildir; savaş gece de olabilir. Öncelik: savaş varsa düşmana saldırmak, yoksa devriye ve köy koruma.
+- At: askerler bir yere gitmeye karar verdiklerinde ata binip gider; savaşta ve beklerken attan inerler. At kaynağı açık.
+- İç/dış asker ayrımı (köyü koruyan ve sefere giden) açık; nasıl ayrılacağı karar verilmedi.
+- Kulaktan kulağa: sandık olayları hariç bütün bilgi köylüler arasında yakınlıkla yayılır; menzil 50 blok (bir köylü bilgiyi 50 blok içindeki köylülere aktarır). Örneğin bir asker bile savaşıyorsa haber askerden askere yayılır ve diğerleri oraya gider. Tehdit geçip etrafta düşman kalmayınca askerler geri döner.
+- Savaş: moblarla savaş otomatiktir. Köylülere ve oyunculara karşı savaş yalnız savaş listesindekilerle olur. Liste köydeki bir lectern'de başlığı War olan kitaptır, her satır bir oyuncu adı. Kitabı başkası alamaz ve düzenleyemez, lectern'i kıramaz; köyün kurucusu değiştirir. Book & quill mı imzalı kitap mı açık. Köyler saldırmadan önce oyuncuya sorabilir.
+- Açık fikir (kullanıcı emin değil): köyde hiç köylü kalmazsa War kitabı ve lectern koruması kalkabilir; böylece köyü bitiren kararlarına da el koyar. Karar verilmedi.
+- Sahiplik: oyuncunun tabela koyduğu sandıklar onundur ve yalnız onun köylüleri kullanır; başka köyün köylüsü bu sandıklardan eşya almaz. Köy tabelasını koyan kurucudur.
+- Ganimet: gerçek item olarak yere düşer; askerler ve oyuncu toplayabilir. Askerler topladığını oyuncunun ilgili sandıklarına taşır; envanteri dolan asker toplamayı bırakır.
+- Pillager: dünyada pillager hakimiyeti olacak, oyuncu ve köylüleri onu kırmaya çalışan taraf. Ekstra raid sistemi yok, vanilla raid yeterli. Tehdit ve ganimet dolu yapılar için yalnız datapack olarak çalışan bir structure paketi düşünülüyor; paket seçilmedi.
+- Ertelendi: oyuncular arası zümrütle ticaret ve kervan. İstenmedi/emin değil: harita.
+- Önceki kararların yerine geçen noktalar: Miner'a kazı yönünde düz ana koridor (spoke) eklendi, önceki "düz ana koridor reddedildi" kararı geçersiz; dönüş ve geri gidiş bu koridordan olur. Rol ekipmanı için kırılmaz component kararı sandıktan alınan ekipmanda uygulanmaz.
+
 ## Yorumlama notu
 
 Sözlü aritmetik kaymaları (örneğin 100x50 için 150 alan denmesi) bir hesaplama veya uygulama kuralı olarak alınmayacak. Belirsiz noktalar bu dosyada karar gibi gösterilmeyecek.

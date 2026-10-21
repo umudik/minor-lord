@@ -64,6 +64,23 @@ class NativeItemSafetyTest {
         assertFalse(io.github.umudik.minorlord.village.VillageWalls.naturalSupport(net.minecraft.world.level.block.Blocks.WATER.defaultBlockState()));
     }
     @org.junit.jupiter.api.Test
+    void armoryRanksRealGearByVanillaValues() {
+        // Weapon and tool classes come from vanilla item tags (checked in the world); values and armor slots here.
+        assertTrue(io.github.umudik.minorlord.equipment.Armory.meleeValue(lookup,new ItemStack(Items.NETHERITE_SWORD))>io.github.umudik.minorlord.equipment.Armory.meleeValue(lookup,new ItemStack(Items.IRON_SWORD)));
+        assertTrue(io.github.umudik.minorlord.equipment.Armory.meleeValue(lookup,new ItemStack(Items.IRON_SWORD))>io.github.umudik.minorlord.equipment.Armory.meleeValue(lookup,new ItemStack(Items.WOODEN_SWORD)));
+        var chest=net.minecraft.world.entity.EquipmentSlot.CHEST;var W=io.github.umudik.minorlord.roles.Role.WARRIOR;
+        assertTrue(io.github.umudik.minorlord.equipment.Armory.score(lookup,W,chest,new ItemStack(Items.DIAMOND_CHESTPLATE))>io.github.umudik.minorlord.equipment.Armory.score(lookup,W,chest,new ItemStack(Items.IRON_CHESTPLATE)));
+        assertTrue(io.github.umudik.minorlord.equipment.Armory.score(lookup,W,chest,new ItemStack(Items.DIAMOND_HELMET))<0);
+        assertTrue(io.github.umudik.minorlord.equipment.Armory.score(lookup,io.github.umudik.minorlord.roles.Role.ARCHER,net.minecraft.world.entity.EquipmentSlot.MAINHAND,new ItemStack(Items.BOW))>0);
+    }
+    @org.junit.jupiter.api.Test
+    void villagersEatOnlySafePlainFood() {
+        for(var item:List.of(Items.BREAD,Items.COOKED_BEEF,Items.CARROT,Items.BAKED_POTATO,Items.GOLDEN_APPLE,Items.MUSHROOM_STEW))
+            assertTrue(io.github.umudik.minorlord.work.Meals.edible(new ItemStack(item)),item.toString());
+        for(var item:List.of(Items.ROTTEN_FLESH,Items.CHICKEN,Items.SPIDER_EYE,Items.POISONOUS_POTATO,Items.PUFFERFISH,Items.CHORUS_FRUIT,Items.SUSPICIOUS_STEW,Items.IRON_INGOT))
+            assertFalse(io.github.umudik.minorlord.work.Meals.edible(new ItemStack(item)),item.toString());
+    }
+    @org.junit.jupiter.api.Test
     void aSignLabelsOnlyTheChestItHangsOn() {
         var chest=new net.minecraft.core.BlockPos(0,64,0);
         var wall=net.minecraft.world.level.block.Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(net.minecraft.world.level.block.WallSignBlock.FACING,net.minecraft.core.Direction.SOUTH);

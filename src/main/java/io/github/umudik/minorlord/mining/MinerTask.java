@@ -25,6 +25,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
     private ItemVariant supportSupply;private long supportNeeded;
     private static final AttachmentType<Long> PROGRESS=AttachmentRegistry.createPersistent(Identifier.fromNamespaceAndPath("minor_lord","mine_progress"),com.mojang.serialization.Codec.LONG);
     private static final AttachmentType<GlobalPos> MINE=AttachmentRegistry.createPersistent(Identifier.fromNamespaceAndPath("minor_lord","mine_site"),GlobalPos.CODEC);
+    private final io.github.umudik.minorlord.equipment.Armory armory=new io.github.umudik.minorlord.equipment.Armory(io.github.umudik.minorlord.roles.Role.MINER);
     public MinerTask(GlobalPos home){this.home=home;}
     public static void initialize(){}
     /**
@@ -59,8 +60,9 @@ public final class MinerTask implements WorkSession.Task<Villager> {
             }
             supportSupply=null;supportNeeded=0;
         }
-        // A full inventory starts a delivery trip by itself, not only when a drop fails to fit.
-        if(!unloading&&inventory.getItems().stream().noneMatch(ItemStack::isEmpty))unloading=true;
+        // A full inventory or hunger starts the trip home along the tunnel, not only when a drop fails to fit.
+        if(!unloading&&(inventory.getItems().stream().noneMatch(ItemStack::isEmpty)||Meals.food(villager)<Meals.EAT_BELOW
+            ||!villager.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES)))unloading=true;
         if(unloading&&!retreat(villager,level))return WorkSession.Step.CONTINUE;
         if(unloading){
             long reserve=32;
@@ -69,11 +71,15 @@ public final class MinerTask implements WorkSession.Task<Villager> {
                 long keep=construction(view.getResource().toStack(),level,villager.blockPosition())?Math.min(reserve,view.getAmount()):0;
                 reserve-=keep;
                 long deliver=Math.min(view.getAmount()-keep,view.getResource().getItem().getDefaultMaxStackSize());if(deliver<=0)continue;
-                // Unsortable loot (no matching or garbage chest) stays carried instead of blocking every other stack.
+                // Unsortable loot (no matching or any chest) stays carried instead of blocking every other stack.
                 if(!Delivery.deliverable(villager,home,view.getResource(),deliver))continue;
                 Delivery.fallback(villager,home,view.getResource(),deliver,walk,false);
                 return WorkSession.Step.CONTINUE;
             }
+            // Home in the village with the stock put away: eat and pick up better gear before going back down.
+            if(Meals.step(villager,home,walk)||armory.step(villager,home,walk))return WorkSession.Step.CONTINUE;
+            // Without a pickaxe there is no mining: wait in the village until one is in a chest.
+            if(!villager.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES))return WorkSession.Step.CONTINUE;
             // Only undeliverable stacks left and no free slot: wait at the village instead of shuttling back and forth.
             if(villager.getInventory().getItems().stream().noneMatch(ItemStack::isEmpty))return WorkSession.Step.CONTINUE;
             if(!Delivery.arrived(villager,site.sign().pos())){walk.offer(villager,site.sign().pos(),0.5f,1);return WorkSession.Step.CONTINUE;}
@@ -207,7 +213,8 @@ public final class MinerTask implements WorkSession.Task<Villager> {
                 if(!blocked&&to.distToCenterSqr(villager.position())>1.4){walk.offer(villager,to,0.5f,0);return false;}
                 retreat--;return false;
             }
-            spokeBack=turn>=0?MiningPattern.crossingDistance(turn):(int)Math.min(10,retreat+1);
+            // On the lead-in, steps 0..retreat-1 are dug (step i is x=i+1): walk back only through dug cells.
+            spokeBack=turn>=0?MiningPattern.crossingDistance(turn):(int)Math.min(10,retreat);
         }
         if(spokeBack<1)return true;
         if(!spokeStep(villager,level,spokeBack,true))return false;
@@ -272,6 +279,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
             }
             if(level.getBlockState(pos)!=state || !level.setBlock(pos,replacement,3))return false;
             transaction.commit();breaking=null;ticks=0;
+            if(!tool.isEmpty())tool.hurtAndBreak(1,villager,net.minecraft.world.entity.EquipmentSlot.MAINHAND);
             for(var item:spilled)villager.spawnAtLocation(level,item);
             return true;
         }

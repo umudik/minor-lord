@@ -184,7 +184,10 @@ public final class LocalWorldArena {
             case SHEPHERD->{supply(r,new String[]{"bucket"},stack(Items.BUCKET,4));output(r,4,"wool","milk_bucket");for(int i=0;i<3;i++){var sheep=mob(EntityTypes.SHEEP,r.x+5+i*2,Y,r.z+11);sheep.setColor(i==1?DyeColor.BLUE:DyeColor.WHITE);r.animals.add(sheep.getUUID());}r.animals.add(mob(EntityTypes.COW,r.x+11,Y,r.z+12).getUUID());r.expected="yun + sut; canli";}
             case BUTCHER->{output(r,4,"beef","leather"); // Herd stays clear of the smoker so the worker can claim it natively.
                 for(int i=0;i<10;i++){var cow=mob(EntityTypes.COW,r.x+10+(i%2)*2,Y,r.z+8+(i/2)*2);r.animals.add(cow.getUUID());if(i==9){cow.setCustomName(Component.literal("korunan"));r.protectedAnimal=cow.getUUID();}}r.expected="1 kesim; >=8 kalir";}
-            case WARRIOR,ARCHER->{if(r.role==Role.ARCHER)supply(r,new String[]{"arrow"},stack(Items.ARROW,32));else output(r,4,"bone","arrow");
+            case WARRIOR,ARCHER->{if(r.role==Role.ARCHER)supply(r,new String[]{"arrow","bow"},stack(Items.ARROW,32),stack(Items.BOW,1));
+                else{supply(r,new String[]{"_sword","_chestplate"},stack(Items.IRON_SWORD,1),stack(Items.IRON_CHESTPLATE,1));output(r,4,"bone","arrow");
+                    // Loot on the ground: the warrior must gather it and carry it to the bone chest.
+                    var drop=new net.minecraft.world.entity.item.ItemEntity(level,r.x+11.5,Y,r.z+7.5,stack(Items.BONE,3));drop.setNoPickUpDelay();level.addFreshEntity(drop);}
                 var enemy=mob(EntityTypes.SKELETON,r.x+11,Y,r.z+12);enemy.setItemSlot(EquipmentSlot.HEAD,RoleEquipment.createUnbreakableCopy(stack(Items.IRON_HELMET,1)));enemy.setDropChance(EquipmentSlot.HEAD,0);r.enemy=enemy.getUUID();
                 var cow=mob(EntityTypes.COW,r.x+7,Y,r.z+11);cow.setCustomName(Component.literal("pasif korunur"));r.protectedAnimal=cow.getUUID();r.expected="dusmana hasar; pasif";}
             case FISHERMAN->{output(r,4,"cod","salmon");for(int dx=9;dx<=12;dx++)for(int dz=8;dz<=13;dz++)put(r.x+dx,Y-1,r.z+dz,Blocks.WATER);
@@ -220,7 +223,7 @@ public final class LocalWorldArena {
         r.hazard=new BlockPos(r.x+7,60,r.z+12);block(r.hazard,Blocks.WATER.defaultBlockState());
         r.hazard2=new BlockPos(r.x+10,59,r.z+14);block(r.hazard2,Blocks.WATER.defaultBlockState());
         var bed=new BlockPos(r.x+3,Y,r.z+1);block(bed,Blocks.BED.red().defaultBlockState().setValue(AbstractBedBlock.FACING,Direction.SOUTH).setValue(AbstractBedBlock.PART,BedPart.FOOT));block(bed.south(),Blocks.BED.red().defaultBlockState().setValue(AbstractBedBlock.FACING,Direction.SOUTH).setValue(AbstractBedBlock.PART,BedPart.HEAD));
-        supply(r,new String[]{"cobblestone"},stack(Items.COBBLESTONE,16));r.outputs.clear();output(r,4,"cobblestone","raw_","diamond","coal","redstone");
+        supply(r,new String[]{"cobblestone","_pickaxe"},stack(Items.COBBLESTONE,16),stack(Items.IRON_PICKAXE,1));r.outputs.clear();output(r,4,"cobblestone","raw_","diamond","coal","redstone");
         r.target=new BlockPos(r.x+8,59,r.z+9);
     }
     private static void spawnWorker(Room r){
@@ -237,7 +240,9 @@ public final class LocalWorldArena {
     private static long count(Room r,Predicate<ItemStack> accepts){long total=0;for(var p:r.outputs)if(level.getBlockEntity(p) instanceof Container c)for(int i=0;i<c.getContainerSize();i++){var s=c.getItem(i);if(accepts.test(s))total+=s.getCount();}return total;}
     private static boolean path(ItemStack s,String token){return !s.isEmpty()&&BuiltInRegistries.ITEM.getKey(s.getItem()).getPath().contains(token);}
     private static long carry(Room r,Predicate<ItemStack> accepts){long n=0;for(int i=0;i<r.worker.getInventory().getContainerSize();i++){var s=r.worker.getInventory().getItem(i);if(accepts.test(s))n+=s.getCount();}return n;}
-    private static boolean healthy(UUID id){return id!=null&&level.getEntity(id) instanceof LivingEntity e&&e.isAlive()&&e.getHealth()==e.getMaxHealth();}
+    /** An animal that is not loaded right now (player flew off) is unknown, not dead. */
+    private static boolean alive(UUID id){var e=level.getEntity(id);return e==null||e instanceof LivingEntity living&&living.isAlive();}
+    private static boolean healthy(UUID id){var e=level.getEntity(id);return id!=null&&(e==null||e instanceof LivingEntity living&&living.isAlive()&&living.getHealth()==living.getMaxHealth());}
     private static void observe(Room r){
         // A worker in a chunk that unloaded (player walked away) is not dead: the room just pauses.
         if(r.worker.isRemoved()&&r.worker.getRemovalReason()==Entity.RemovalReason.UNLOADED_TO_CHUNK)return;
@@ -251,7 +256,7 @@ public final class LocalWorldArena {
         }else switch(r.role){
             case CHESTER->{long iron=count(r,s->s.is(Items.IRON_INGOT)),gold=count(r,s->s.is(Items.GOLD_INGOT)),stone=count(r,s->s.is(Items.COBBLESTONE));long sword=carry(r,s->s.is(Items.WOODEN_SWORD))+count(r,s->s.is(Items.WOODEN_SWORD))+(level.getBlockEntity(r.input) instanceof Container c?c.countItem(Items.WOODEN_SWORD):0);ok=iron==17&&gold==11&&stone==13&&sword==1;detail=iron+"Fe "+gold+"Au "+stone+"tas";}
             case MINER->{long loot=carry(r,s->s.is(Items.COBBLESTONE)||s.is(Items.RAW_IRON)||s.is(Items.DIAMOND))+count(r,s->s.is(Items.RAW_IRON)||s.is(Items.DIAMOND)||s.is(Items.COAL));boolean opened=!level.getBlockState(r.target).is(Blocks.STONE);boolean marker=level.getBlockEntity(r.mine) instanceof SignBlockEntity;
-                boolean sealed=level.getFluidState(r.hazard).isEmpty()&&level.getFluidState(r.hazard2).isEmpty()&&level.getFluidState(r.target).isEmpty();ok=opened&&sealed&&loot>=3&&marker&&r.worker.getVillagerData().profession().is(VillagerProfession.NONE)&&r.worker.getMainHandItem().is(Items.DIAMOND_PICKAXE);if(!marker)r.failed=true;detail="ganimet "+loot+(level.getFluidState(r.hazard).isEmpty()&&level.getFluidState(r.hazard2).isEmpty()?" su kapali":" su acik");}
+                boolean sealed=level.getFluidState(r.hazard).isEmpty()&&level.getFluidState(r.hazard2).isEmpty()&&level.getFluidState(r.target).isEmpty();ok=opened&&sealed&&loot>=3&&marker&&r.worker.getVillagerData().profession().is(VillagerProfession.NONE)&&r.worker.getMainHandItem().is(Items.IRON_PICKAXE);if(!marker)r.failed=true;detail="ganimet "+loot+(level.getFluidState(r.hazard).isEmpty()&&level.getFluidState(r.hazard2).isEmpty()?" su kapali":" su acik");}
             case COOK->{long n=count(r,s->s.is(Items.BREAD));ok=n>=4;detail=n+" /4 ekmek";}
             case SMELTER->{long n=count(r,s->s.is(Items.IRON_INGOT));ok=n>=4;detail=n+" /4 demir";}
             case FARMER->{long n=count(r,s->s.is(Items.WHEAT));ok=n>0;detail=n+" bugday depoda";}
@@ -264,9 +269,11 @@ public final class LocalWorldArena {
             case MASON->{long n=count(r,s->path(s,"_slab"));ok=n>=32;detail=n+" /32 slab";}
             case LIBRARIAN->{long n=count(r,s->s.is(Items.ENCHANTED_BOOK));ok=n>=1;detail=n+" buyulu kitap";}
             case CLERIC->{long n=count(r,s->s.has(DataComponents.POTION_CONTENTS)&&s.get(DataComponents.POTION_CONTENTS).is(Potions.AWKWARD));ok=n>=1;detail=n+" awkward iksir";}
-            case SHEPHERD->{long wool=count(r,s->path(s,"_wool")),milk=count(r,s->s.is(Items.MILK_BUCKET));boolean alive=r.animals.stream().allMatch(id->level.getEntity(id) instanceof LivingEntity e&&e.isAlive());if(!alive)r.failed=true;ok=wool>0&&milk>0&&alive;detail=wool+" yun "+milk+" sut";}
-            case BUTCHER->{long adults=r.animals.stream().filter(id->level.getEntity(id) instanceof LivingEntity e&&e.isAlive()).count();long meat=count(r,s->s.is(Items.BEEF));if(adults<8||!healthy(r.protectedAnimal))r.failed=true;ok=meat>0&&adults>=8&&healthy(r.protectedAnimal);detail=adults+" canli / et "+meat;}
-            case WARRIOR,ARCHER->{var target=level.getEntity(r.enemy);boolean damaged=target==null||target instanceof LivingEntity e&&e.getHealth()<e.getMaxHealth();if(!healthy(r.protectedAnimal))r.failed=true;ok=damaged&&healthy(r.protectedAnimal);detail=damaged?"dusman hasar aldi":"dusmana yuruyor";}
+            case SHEPHERD->{long wool=count(r,s->path(s,"_wool")),milk=count(r,s->s.is(Items.MILK_BUCKET));boolean alive=r.animals.stream().allMatch(LocalWorldArena::alive);if(!alive)r.failed=true;ok=wool>0&&milk>0&&alive;detail=wool+" yun "+milk+" sut";}
+            case BUTCHER->{long adults=r.animals.stream().filter(LocalWorldArena::alive).count();long meat=count(r,s->s.is(Items.BEEF));if(adults<8||!healthy(r.protectedAnimal))r.failed=true;ok=meat>0&&adults>=8&&healthy(r.protectedAnimal);detail=adults+" canli / et "+meat;}
+            case WARRIOR,ARCHER->{var target=level.getEntity(r.enemy);boolean damaged=target==null||target instanceof LivingEntity e&&e.getHealth()<e.getMaxHealth();if(!healthy(r.protectedAnimal))r.failed=true;boolean armed=r.role==Role.ARCHER?r.worker.getMainHandItem().is(Items.BOW):r.worker.getMainHandItem().is(Items.IRON_SWORD)&&r.worker.getItemBySlot(EquipmentSlot.CHEST).is(Items.IRON_CHESTPLATE);
+                boolean looted=r.role==Role.ARCHER||count(r,s->s.is(Items.BONE))>=3;
+                ok=damaged&&armed&&looted&&healthy(r.protectedAnimal);detail=(armed?"kusandi ":"kusanmadi ")+(looted?"ganimet sandikta ":"ganimet yok ")+(damaged?"hasar":"yuruyor");}
             case FISHERMAN->{long fish=count(r,s->s.is(Items.COD)||s.is(Items.SALMON));ok=fish>0;detail=fish+" balik sandikta";}
             default->{}
         }

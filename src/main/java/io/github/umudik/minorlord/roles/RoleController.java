@@ -1,6 +1,5 @@
 package io.github.umudik.minorlord.roles;
 import io.github.umudik.minorlord.MinorLord;
-import io.github.umudik.minorlord.equipment.RoleEquipment;
 import io.github.umudik.minorlord.equipment.RoleLoadout;
 import io.github.umudik.minorlord.mining.MinerTask;
 import io.github.umudik.minorlord.work.*;
@@ -29,7 +28,7 @@ public final class RoleController {
     private static final Set<UUID> ACTIVATING=new HashSet<>();
     private static final Set<UUID> RESTART=new HashSet<>(),REMOVAL_READY=new HashSet<>();
     private RoleController(){}
-    public static void initialize(){RoleLoadout.initialize();MinerTask.initialize();LibrarianTask.initialize();CombatTask.initialize();BrewingTask.initialize();ButcherTask.initialize();}
+    public static void initialize(){RoleLoadout.initialize();MinerTask.initialize();Meals.initialize();LibrarianTask.initialize();CombatTask.initialize();BrewingTask.initialize();ButcherTask.initialize();}
     /** Spawn/load, name, adulthood and actual profession changes enqueue once, coalesced per entity. */
     public static void request(Villager villager,ServerLevel level){
         if(!ACTIVATING.contains(villager.getUUID()))PENDING.put(villager.getUUID(),new Activation(villager,level));
@@ -47,7 +46,7 @@ public final class RoleController {
         if(old!=null){var members=BY_HOME.get(old);if(members!=null){members.remove(v.getUUID());if(members.isEmpty())BY_HOME.remove(old);}}
     }
     public static void unloaded(Villager v){
-        RESTART.remove(v.getUUID());REMOVAL_READY.remove(v.getUUID());
+        RESTART.remove(v.getUUID());REMOVAL_READY.remove(v.getUUID());Alarms.forget(v.getUUID());CombatTask.forget(v.getUUID());
         PENDING.remove(v.getUUID());WAITING_FOR_HOME.remove(v.getUUID());unbind(v);
         MinorLord.WORK_SESSIONS.removeFor(v);MinorLord.MANAGED_VILLAGERS.remove(v.getUUID());
         // A villager leaving this world for good (killed, discarded, converted, changed dimension) must not keep machines locked.
@@ -65,6 +64,10 @@ public final class RoleController {
         if(managed)WorkPackages.apply(v,Optional.empty());
     }
     /** Extra roles are not vanilla professions: while the name tag stays they hold no job site or profession. */
+    /** The soldier whose brain is ticking on this thread right now (keeps its schedule on duty). */
+    public static final ThreadLocal<Villager> DUTY=new ThreadLocal<>();
+    /** Warriors and archers: fearless, they never panic or hide. */
+    public static boolean soldier(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).filter(r->r==Role.WARRIOR||r==Role.ARCHER).isPresent();}
     public static boolean namedExtraRole(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).isPresent();}
     public static void renamed(Villager villager,ServerLevel level){
         RESTART.add(villager.getUUID());

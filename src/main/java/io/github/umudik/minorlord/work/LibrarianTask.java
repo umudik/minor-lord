@@ -18,6 +18,10 @@ import net.minecraft.world.level.block.Blocks;
 public final class LibrarianTask implements WorkSession.Task<Villager> {
     private static final AttachmentType<Identifier> CHOICE=AttachmentRegistry.createPersistent(
         Identifier.fromNamespaceAndPath("minor_lord","librarian_choice"),Identifier.CODEC);
+    /** Two books per Minecraft day per librarian: after each one it waits half a day (saved, survives restarts). */
+    public static final long TICKS_PER_BOOK=12000;
+    private static final AttachmentType<Long> NEXT_BOOK=AttachmentRegistry.createPersistent(
+        Identifier.fromNamespaceAndPath("minor_lord","librarian_next_book"),com.mojang.serialization.Codec.LONG);
     private final GlobalPos home;
     private final TaskWalkTarget walk=new TaskWalkTarget();
     public LibrarianTask(GlobalPos home){this.home=home;}
@@ -31,10 +35,12 @@ public final class LibrarianTask implements WorkSession.Task<Villager> {
             Delivery.fallback(v,home,e.getKey(),amount,walk,false);
             return WorkSession.Step.CONTINUE;
         }
+        var attached=(AttachmentTarget)v;var next=attached.getAttached(NEXT_BOOK);
+        if(next!=null&&level.getGameTime()<next)return WorkSession.Step.CONTINUE;
         var station=WorkResources.station(v,home,s->s.is(Blocks.LECTERN));
         if(station.isEmpty())return WorkSession.Step.CONTINUE;
         var registry=level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        var attached=(AttachmentTarget)v;var id=attached.getAttached(CHOICE);
+        var id=attached.getAttached(CHOICE);
         var selected=id==null?Optional.<Holder.Reference<net.minecraft.world.item.enchantment.Enchantment>>empty():registry.get(id);
         if(selected.isEmpty()||selected.get().is(EnchantmentTags.CURSE)){
             var pool=registry.listElements().filter(e->!e.is(EnchantmentTags.CURSE)).toList();
@@ -48,7 +54,7 @@ public final class LibrarianTask implements WorkSession.Task<Villager> {
         if(!Delivery.arrived(v,station.get())){walk.offer(v,station.get(),0.5f,1);return WorkSession.Step.CONTINUE;}
         var result=InventoryConversions.convertInPlace(carry,Map.of(book,1L),Map.of(output,1L),
             ()->Delivery.arrived(v,station.get())&&level.getBlockState(station.get()).is(Blocks.LECTERN));
-        if(result==InventoryConversions.Result.PRODUCED)attached.removeAttached(CHOICE);
+        if(result==InventoryConversions.Result.PRODUCED){attached.removeAttached(CHOICE);attached.setAttached(NEXT_BOOK,level.getGameTime()+TICKS_PER_BOOK);}
         return WorkSession.Step.CONTINUE;
     }
     @Override public void pause(Villager v){walk.release(v);}

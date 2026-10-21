@@ -45,21 +45,11 @@ public final class BehaviorWorldChecks {
             actor.getBrain().setActiveActivityIfPossible(Activity.IDLE);RoleController.request(actor,level);RoleController.flush();actor.getBrain().setActiveActivityIfPossible(Activity.WORK);actor.setItemSlot(EquipmentSlot.MAINHAND,ItemStack.EMPTY);
             var zombie=EntityTypes.ZOMBIE.create(level,EntitySpawnReason.COMMAND);zombie.setPos(5.5,y,4.5);zombie.setNoAi(true);level.addFreshEntity(zombie);
             var cow=EntityTypes.COW.create(level,EntitySpawnReason.COMMAND);cow.setPos(4.5,y,5.5);cow.setNoAi(true);level.addFreshEntity(cow);
-            CombatTask.equip(actor,Role.WARRIOR);
-            for(int sample=0;sample<128;sample++){
-                check(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(actor.getMainHandItem().getItem()).getPath().endsWith("_sword"),"Warrior random pool contains a non-sword");
-                if(sample<127){actor.setItemSlot(EquipmentSlot.MAINHAND,ItemStack.EMPTY);CombatTask.equip(actor,Role.WARRIOR);}
-            }
-            for(var slot:List.of(EquipmentSlot.MAINHAND,EquipmentSlot.HEAD,EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET)){
-                var gear=actor.getItemBySlot(slot);check(gear.has(DataComponents.UNBREAKABLE),"Combat role gear is not native unbreakable");
-                var enchanted=gear.getOrDefault(DataComponents.ENCHANTMENTS,ItemEnchantments.EMPTY);
-                for(var a:enchanted.keySet()){
-                    check(a.value().isSupportedItem(gear),"Unsupported combat enchantment");
-                    for(var b:enchanted.keySet())if(!a.equals(b))check(Enchantment.areCompatible(a,b),"Mutually incompatible combat enchantments");
-                }
-            }
+            // Real gear: a plain iron sword, which wears with each hit.
+            actor.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.IRON_SWORD));
             float health=zombie.getHealth();new CombatTask(home,Role.WARRIOR).step(actor);
             check(zombie.getHealth()<health&&cow.getHealth()==cow.getMaxHealth(),"Warrior must damage hostile and leave cow untouched");
+            check(actor.getMainHandItem().getDamageValue()==1,"A hit must wear the real sword by one");
             zombie.setPos(9.5,y,4.5);actor.setItemSlot(EquipmentSlot.MAINHAND,new ItemStack(Items.BOW));actor.getInventory().addItem(new ItemStack(Items.ARROW));
             var archer=new CombatTask(home,Role.ARCHER);archer.step(actor);
             var arrows=level.getEntitiesOfClass(AbstractArrow.class,box,a->Boolean.TRUE.equals(((AttachmentTarget)a).getAttached(CombatTask.ARROW)));

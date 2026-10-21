@@ -6,12 +6,15 @@ import java.util.Objects;
 public final class ChestNameFilter {
     private ChestNameFilter() {}
 
+    /** The catch-all label: never a name filter itself. */
+    public static final String ANY = "any";
+
     public static boolean matches(String comparableItemName, String comparableLabel) {
         Objects.requireNonNull(comparableItemName, "comparableItemName");
         Objects.requireNonNull(comparableLabel, "comparableLabel");
         // Empty/whitespace-only labels never grant wildcard access to an inventory.
         var label=normalize(comparableLabel);
-        return !label.isEmpty() && comparableItemName.contains(label);
+        return !label.isEmpty() && !label.equals(ANY) && comparableItemName.contains(label);
     }
 
     /** "Raw Copper", "raw-copper" and " raw_copper " all mean raw_copper: lower case, spaces and hyphens become _. */

@@ -21,7 +21,7 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Walks to dry shore beside loaded still water and fishes with its held rod: vanilla lure wait, one roll of the
- * vanilla fishing loot table, real items carried to a matching (or garbage) chest. No bobber entity, so no treasure.
+ * vanilla fishing loot table, real items carried to a matching (or any) chest. No bobber entity, so no treasure.
  */
 public final class FishermanShoreTask implements WorkSession.Task<Villager>{
     private final GlobalPos home;private final TaskWalkTarget walk=new TaskWalkTarget();

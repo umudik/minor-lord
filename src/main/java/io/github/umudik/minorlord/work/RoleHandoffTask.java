@@ -12,6 +12,10 @@ public final class RoleHandoffTask implements WorkSession.Task<Villager> {
     private final GlobalPos home;private final Role role;private final WorkSession.Task<Villager> next;private final TaskWalkTarget walk=new TaskWalkTarget();
     public RoleHandoffTask(GlobalPos home,Role role,WorkSession.Task<Villager> next){this.home=home;this.role=role;this.next=next;}
     @Override public WorkSession.Step step(Villager v){
+        v.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.NEAREST_HOSTILE).ifPresent(enemy->Alarms.raise(v,enemy.blockPosition()));
+        Alarms.relay(v);
+        // Eating comes first; a starving villager does no work until it has eaten. Miners eat on their trip home.
+        if(role!=Role.MINER&&Meals.step(v,home,walk))return WorkSession.Step.CONTINUE;
         if(RoleLoadout.pending(v)){
             for(var item:WorkResources.contents(VillageInventories.carried(v)).entrySet()){
                 long amount=Math.min(item.getValue(),item.getKey().getItem().getDefaultMaxStackSize());

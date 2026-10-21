@@ -48,6 +48,8 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
     private boolean plan(Villager v){
         var level=(ServerLevel)v.level();station=workstation(v).orElse(null);if(station==null)return false;
         var supply=available(level);
+        // Among everything the stock allows, the best gear for its need is made first (diamond before iron before copper).
+        CraftingRecipe bestRecipe=null;CraftingInput bestGrid=null;Map<ItemVariant,Long> bestCosts=null,bestOutputs=null;long bestBatches=0;double bestValue=-1;
         for(var holder:RuntimeRecipes.ofType(level.getServer().getRecipeManager(),RecipeType.CRAFTING)){
             if(!(holder.value() instanceof CraftingRecipe candidate)||candidate.placementInfo().isImpossibleToPlace())continue;
             BatchAllocator.Allocation<ItemVariant> allocation;
@@ -66,20 +68,24 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
             var grid=CraftingInput.of(width,height,stacks);if(!candidate.matches(grid,level))continue;
             var output=candidate.assemble(grid);
             if(output.isEmpty()||!CraftingRoles.accepts(role,candidate,output))continue;
-            long stock=0;Set<Object> seen=new HashSet<>();for(var p:VillageInventories.chests(level,home))if(!VillageInventories.labels(level,p).isEmpty()){
-                var endpoint=LiveChestAccess.resolve(level,p);if(endpoint.isEmpty()||!Collections.disjoint(seen,endpoint.get().inventoryIdentities()))continue;
-                seen.addAll(endpoint.get().inventoryIdentities());if(endpoint.isPresent())for(var e:contents(endpoint.get()).entrySet())
-                    if(e.getKey().equals(ItemVariant.of(output)))stock+=e.getValue();
-            }
-            if(!StockLimits.shouldStart(role,stock,output.getMaxStackSize()))continue;
+            // Gear: as many as the village's users still lack. Anything else: the old per-product chest limit.
+            var deficit=io.github.umudik.minorlord.production.Demand.deficit(level,home,output);
+            long allowed=allocation.batches();
+            if(deficit.isPresent()){
+                if(deficit.getAsLong()<=0)continue;
+                allowed=Math.min(allowed,(deficit.getAsLong()+output.getCount()-1)/output.getCount());
+            }else if(!StockLimits.shouldStart(role,WorkResources.stock(level,home,ItemVariant.of(output)),output.getMaxStackSize()))continue;
+            double value=io.github.umudik.minorlord.production.Demand.value(level.registryAccess(),output);
+            if(value<=bestValue)continue;
             var outputs=new LinkedHashMap<ItemVariant,Long>(RecipeRemainders.inspect(candidate,grid));outputs.merge(ItemVariant.of(output),(long)output.getCount(),Math::addExact);
             plannedOutputs=outputs;targetCache.clear();
             if(OutputPreflight.check(outputs,item->target(v,item))!=OutputPreflight.Result.READY)continue;
             var needed=new LinkedHashMap<ItemVariant,Long>();for(var stack:grid.items())if(!stack.isEmpty())needed.merge(ItemVariant.of(stack),1L,Math::addExact);
-            // One complete native grid at a time; keep this recipe active and repeat while it is producible.
-            recipe=candidate;input=grid;costs=needed;batches=allocation.batches();return true;
+            bestRecipe=candidate;bestGrid=grid;bestCosts=needed;bestOutputs=outputs;bestBatches=allowed;bestValue=value;
         }
-        return false;
+        if(bestRecipe==null)return false;
+        // One complete native grid at a time; keep this recipe active and repeat while it is producible and needed.
+        plannedOutputs=bestOutputs;targetCache.clear();recipe=bestRecipe;input=bestGrid;costs=bestCosts;batches=bestBatches;return true;
     }
     @Override public WorkSession.Step step(Villager v){
         targetCache.clear();
