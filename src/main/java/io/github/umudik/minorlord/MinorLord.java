@@ -65,7 +65,7 @@ public final class MinorLord implements ModInitializer {
             VILLAGE_WALLS.clear();
             io.github.umudik.minorlord.storage.VillageInventories.clear();
             io.github.umudik.minorlord.mining.MineMarkers.clear();
-            io.github.umudik.minorlord.work.FurnaceTask.clear();
+            io.github.umudik.minorlord.work.FurnaceTask.clear();io.github.umudik.minorlord.storage.Unreachable.clear();
             io.github.umudik.minorlord.work.BrewingTask.clear();
         });
         LOGGER.info("Minor Lord loaded: Village walls, named Miner/Chester and native recipe crafting work enabled.");

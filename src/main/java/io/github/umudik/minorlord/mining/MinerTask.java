@@ -73,7 +73,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
                 long deliver=Math.min(view.getAmount()-keep,view.getResource().getItem().getDefaultMaxStackSize());if(deliver<=0)continue;
                 // Unsortable loot (no matching or any chest) stays carried instead of blocking every other stack.
                 if(!Delivery.deliverable(villager,home,view.getResource(),deliver))continue;
-                Delivery.fallback(villager,home,view.getResource(),deliver,walk,false);
+                Delivery.fallback(villager,home,view.getResource(),deliver,walk);
                 return WorkSession.Step.CONTINUE;
             }
             // Home in the village with the stock put away: eat and pick up better gear before going back down.
@@ -147,7 +147,8 @@ public final class MinerTask implements WorkSession.Task<Villager> {
      * on step by step. Underground means more than one block below the entrance.
      */
     private BlockPos route(Villager villager,BlockPos target){
-        var entrance=site==null?null:MineMarkers.entrance(site).orElse(null);
+        var village=io.github.umudik.minorlord.MinorLord.VILLAGE_SCOPES.active(home);
+        var entrance=site==null||village.isEmpty()?null:MineMarkers.entrance(site,village.get().bounds()).orElse(null);
         if(entrance==null||entrance.distToCenterSqr(villager.position())<=9)return target;
         boolean below=villager.getBlockY()<entrance.getY()-1,targetBelow=target.getY()<entrance.getY()-1;
         return below==targetBelow?target:entrance;

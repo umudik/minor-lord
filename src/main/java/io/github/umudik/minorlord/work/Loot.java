@@ -18,9 +18,11 @@ import net.minecraft.world.item.Items;
  */
 final class Loot {
     private static final int SEARCH=16,GIVE_UP_TICKS=200;
-    private final Role role;private UUID chasing;private long chaseSince;
+    private final Role role;private final int minAge;private UUID chasing;private long chaseSince;
     private final Set<UUID> unreachable=new HashSet<>();
-    Loot(Role role){this.role=role;}
+    Loot(Role role){this(role,0);}
+    /** Only drops lying at least minAge ticks: a chester leaves food villagers throw to each other to its receiver. */
+    Loot(Role role,int minAge){this.role=role;this.minAge=minAge;}
 
     /** True while walking to a drop or delivering loot. */
     boolean step(Villager v,GlobalPos home,TaskWalkTarget walk){
@@ -29,7 +31,7 @@ final class Loot {
         var carried=VillageInventories.carried(v);
         if(v.getInventory().getItems().stream().anyMatch(net.minecraft.world.item.ItemStack::isEmpty)){
             if(unreachable.size()>64)unreachable.clear();
-            var drop=level.getEntitiesOfClass(ItemEntity.class,v.getBoundingBox().inflate(SEARCH),e->e.isAlive()&&!e.hasPickUpDelay()
+            var drop=level.getEntitiesOfClass(ItemEntity.class,v.getBoundingBox().inflate(SEARCH),e->e.isAlive()&&!e.hasPickUpDelay()&&e.getAge()>=minAge
                     &&!unreachable.contains(e.getUUID())&&v.hasLineOfSight(e)
                     &&StorageUtil.simulateInsert(carried.storage(),ItemVariant.of(e.getItem()),e.getItem().getCount(),null)>0)
                 .stream().min(Comparator.comparingDouble(e->e.distanceToSqr(v))).orElse(null);
@@ -44,7 +46,7 @@ final class Loot {
             if(role==Role.ARCHER&&e.getKey().isOf(Items.ARROW))continue;
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
             if(!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-            Delivery.fallback(v,home,e.getKey(),amount,walk,false);return true;
+            Delivery.fallback(v,home,e.getKey(),amount,walk);return true;
         }
         return false;
     }

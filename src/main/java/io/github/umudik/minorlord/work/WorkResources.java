@@ -57,7 +57,7 @@ public final class WorkResources {
     }
     public static long stock(ServerLevel level,GlobalPos home,ItemVariant item){
         Set<Object> seen=new HashSet<>();long count=0;
-        for(var p:VillageInventories.chests(level,home))if(!VillageInventories.labels(level,p).isEmpty()){
+        for(var p:VillageInventories.chests(level,home)){
             var endpoint=LiveChestAccess.resolve(level,p);if(endpoint.isEmpty()||!Collections.disjoint(seen,endpoint.get().inventoryIdentities()))continue;
             seen.addAll(endpoint.get().inventoryIdentities());count+=contents(endpoint.get()).getOrDefault(item,0L);
         }return count;
@@ -67,7 +67,7 @@ public final class WorkResources {
         for(var e:contents(VillageInventories.carried(v)).entrySet()){
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
             if(!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-            Delivery.fallback(v,home,e.getKey(),amount,walk,false);return true;
+            Delivery.fallback(v,home,e.getKey(),amount,walk);return true;
         }return false;
     }
 }

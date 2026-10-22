@@ -99,7 +99,7 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
         if(!pending.isEmpty()){
             for(var e:List.copyOf(pending.entrySet())){
                 if(!Delivery.deliverable(v,home,e.getKey(),e.getValue()))continue;
-                if(Delivery.fallback(v,home,e.getKey(),e.getValue(),walk,false))pending.remove(e.getKey());
+                if(Delivery.fallback(v,home,e.getKey(),e.getValue(),walk))pending.remove(e.getKey());
                 return WorkSession.Step.CONTINUE;
             }
             pending.clear(); // Nothing left with a destination: the stacks stay carried and are retried below.
@@ -109,7 +109,7 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
                 for(var e:carried.entrySet()){
                     long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
                     if(!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-                    Delivery.fallback(v,home,e.getKey(),amount,walk,false);return WorkSession.Step.CONTINUE;
+                    Delivery.fallback(v,home,e.getKey(),amount,walk);return WorkSession.Step.CONTINUE;
                 }
             }
             if(checked==VillageInventories.revision(home)||level.getGameTime()-plannedAt<REPLAN_TICKS)return WorkSession.Step.IDLE;

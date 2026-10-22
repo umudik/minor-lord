@@ -14,7 +14,7 @@ public final class FarmerSurplusTask implements WorkSession.Task<Villager>{
             if(item.isOf(Items.CARROT)||item.isOf(Items.POTATO)||item.isOf(Items.BEETROOT))keep=12;
             if(item.isOf(Items.BREAD))keep=3;
             long excess=Math.min(e.getValue()-keep,item.getItem().getDefaultMaxStackSize());
-            if(excess>0&&Delivery.deliverable(v,home,item,excess)){Delivery.fallback(v,home,item,excess,walk,false);break;}
+            if(excess>0&&Delivery.deliverable(v,home,item,excess)){Delivery.fallback(v,home,item,excess,walk);break;}
         }return WorkSession.Step.CONTINUE;
     }
     @Override public void pause(Villager v){walk.release(v);}

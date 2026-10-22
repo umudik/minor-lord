@@ -80,7 +80,7 @@ public final class TimberTask implements WorkSession.Task<Villager>{
             if(e.getKey().toStack().is(ItemTags.SAPLINGS)){long kept=Math.min(keep,amount);keep-=kept;amount-=kept;}
             amount=Math.min(amount,e.getKey().getItem().getDefaultMaxStackSize());
             if(amount<=0||!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-            Delivery.fallback(v,home,e.getKey(),amount,walk,false);return true;
+            Delivery.fallback(v,home,e.getKey(),amount,walk);return true;
         }
         return false;
     }

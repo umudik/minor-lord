@@ -20,8 +20,8 @@ public final class RoleHandoffTask implements WorkSession.Task<Villager> {
             for(var item:WorkResources.contents(VillageInventories.carried(v)).entrySet()){
                 long amount=Math.min(item.getValue(),item.getKey().getItem().getDefaultMaxStackSize());
                 // Nowhere to return it: the stack stays in the villager's saved inventory instead of blocking the new job.
-                if(VillageInventories.fallback(v,home,item.getKey(),amount,true).isEmpty())continue;
-                Delivery.fallback(v,home,item.getKey(),amount,walk,true);
+                if(VillageInventories.fallback(v,home,item.getKey(),amount).isEmpty())continue;
+                Delivery.fallback(v,home,item.getKey(),amount,walk);
                 return WorkSession.Step.CONTINUE;
             }
             if(RoleLoadout.stage(v))return WorkSession.Step.CONTINUE;

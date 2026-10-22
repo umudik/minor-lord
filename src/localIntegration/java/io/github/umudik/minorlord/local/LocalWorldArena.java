@@ -135,7 +135,7 @@ public final class LocalWorldArena {
                 for(int y=50;y<=61;y++)put(x,y,z,ORE_RANDOM.nextInt(100)<6?UNDERGROUND_ORES[ORE_RANDOM.nextInt(UNDERGROUND_ORES.length)]:Blocks.STONE);
                 put(x,62,z,Blocks.STONE);put(x,63,z,(x%6==0&&z%6==0)?Blocks.SEA_LANTERN:Blocks.SMOOTH_STONE);
             }
-            if(column==10000){for(var p:server.getPlayerList().getPlayers())p.teleportTo(225.5,Y,474.5);announce("Zemin hazir; bagimsiz test odalari kuruluyor.");}
+            if(column==10000)announce("Zemin hazir; bagimsiz test odalari kuruluyor.");
             return;
         }
         if(roomIndex<ROOMS.size()){build(ROOMS.get(roomIndex++));return;}
@@ -143,7 +143,6 @@ public final class LocalWorldArena {
             for(var r:ROOMS)spawnWorker(r);
             post(225,Y,473,"MINOR LORD TEST","19 rol + kontrol","camdan incele","kapilari kapat");
             post(227,Y,473,"test gunduzu","native is saatleri","giris / cikis","127.0.0.1:25578");
-            for(var p:server.getPlayerList().getPlayers())p.teleportTo(225.5,Y,474.5);
             announce("Odalar hazir. Gercek NPC hareketleri ve sonuclar tabelalarda izleniyor; elle gorev tick edilmez.");
         }
         observed++;
@@ -165,12 +164,12 @@ public final class LocalWorldArena {
         r.job=new BlockPos(r.x+7,Y,r.z+10);block(r.job,nativeStation(r.role).defaultBlockState());
         put(r.x+7,Y,r.z+7,Blocks.CRAFTING_TABLE);
         if(r.role==null){
-            var source=chest(r,3,4,new String[0],stack(Items.IRON_INGOT,17));r.input=source.getBlockPos();output(r,4,"iron_ingot");
-            var target=(ChestBlockEntity)level.getBlockEntity(r.outputs.getFirst());for(int i=0;i<27;i++)target.setItem(i,stack(Items.COBBLESTONE,64));
+            var source=chest(r,3,4,new String[]{"any"},stack(Items.IRON_INGOT,17));r.input=source.getBlockPos();output(r,4,"iron_ingot");
+            var target=(ChestBlockEntity)level.getBlockEntity(r.outputs.getFirst());for(int i=0;i<27;i++)target.setItem(i,stack(Items.IRON_INGOT,64)); // full of its own item: nothing may move
             r.expected="kaynak=17 sabit";
             post(r.x+3,Y,r.z+11,"negatif test","dolu hedef -> bekle","bebek -> is yok","esya kaybi yok");
         }else switch(r.role){
-            case CHESTER->{var c=chest(r,3,4,new String[0],stack(Items.IRON_INGOT,17),stack(Items.GOLD_INGOT,11),stack(Items.COBBLESTONE,13));r.input=c.getBlockPos();output(r,4,"iron_ingot");output(r,7,"gold_ingot");output(r,10,"cobblestone");r.expected="17 demir 11 altin";}
+            case CHESTER->{var c=chest(r,3,4,new String[]{"any"},stack(Items.IRON_INGOT,17),stack(Items.GOLD_INGOT,11),stack(Items.COBBLESTONE,13));r.input=c.getBlockPos();output(r,4,"iron_ingot");output(r,7,"gold_ingot");output(r,10,"cobblestone");r.expected="17 demir 11 altin";}
             case MINER->{buildMine(r);r.expected="gercek kazi + loot";}
             case COOK->{supply(r,new String[]{"wheat"},stack(Items.WHEAT,12));output(r,4,"bread");r.expected="12 bugday ->4 ekmek";}
             case SMELTER->{supply(r,new String[]{"raw_iron","coal"},stack(Items.RAW_IRON,4),stack(Items.COAL,2));output(r,4,"iron_ingot");put(r.x+7,Y,r.z+7,Blocks.FURNACE);r.expected="4 ham demir ->4";}

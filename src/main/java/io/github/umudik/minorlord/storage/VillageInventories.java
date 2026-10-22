@@ -75,7 +75,8 @@ public final class VillageInventories {
         if(declaration.isEmpty()) return List.of();
         return CHESTS.stream().filter(p->p.dimension().equals(level.dimension()))
             .map(GlobalPos::pos).filter(p->declaration.get().bounds().contains(p.getX(),p.getZ()))
-            .filter(level::hasChunkAt)
+            // Village storage is the signed chests only: an unsigned chest (a cave chest under the village) is not.
+            .filter(level::hasChunkAt).filter(p->!Unreachable.is(level,p)).filter(p->!labels(level,p).isEmpty())
             .filter(p->LiveChestAccess.resolve(level,p).filter(endpoint->endpoint.inventoryIdentities().stream()
                 .allMatch(id->id instanceof LiveChestAccess.PhysicalChest c&&declaration.get().bounds().contains(c.position().getX(),c.position().getZ()))).isPresent())
             .sorted(Comparator.comparingLong(BlockPos::asLong)).toList();
@@ -134,11 +135,11 @@ public final class VillageInventories {
     }
     /** A chest labelled any takes whatever has no chest of its own. */
     public static boolean any(ServerLevel level,BlockPos chest){return labels(level,chest).stream().anyMatch(s->ChestNameFilter.normalize(s).equals(ChestNameFilter.ANY));}
-    public static Optional<BlockPos> fallback(Villager villager,GlobalPos village,ItemVariant item,long amount,boolean allowUnlabelled){
+    /** The best chest for the item, else an any chest with room. */
+    public static Optional<BlockPos> fallback(Villager villager,GlobalPos village,ItemVariant item,long amount){
         var specific=nearest(villager,village,item,amount);if(specific.isPresent())return specific;
         var level=(ServerLevel)villager.level();
-        var any=availableChest(villager,village,item,amount,p->any(level,p));
-        return any.isPresent()||!allowUnlabelled?any:availableChest(villager,village,item,amount,p->labels(level,p).isEmpty());
+        return availableChest(villager,village,item,amount,p->any(level,p));
     }
     private static Optional<BlockPos> availableChest(Villager v,GlobalPos home,ItemVariant item,long amount,java.util.function.Predicate<BlockPos> accepts){
         var level=(ServerLevel)v.level();return chests(level,home).stream().filter(accepts)

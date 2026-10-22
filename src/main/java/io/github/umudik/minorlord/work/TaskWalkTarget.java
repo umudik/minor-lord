@@ -17,6 +17,9 @@ public final class TaskWalkTarget {
     }
 
     private WalkTarget issued;
+    /** A walk that brings the villager no closer for STUCK_TICKS has an unreachable target (see Unreachable). */
+    public static final long STUCK_TICKS=200;
+    private BlockPos goal;private double closest;private long progressAt;
     private java.util.function.BiFunction<Villager,BlockPos,BlockPos> route=(villager,target)->target;
     /** A role that knows the way (a mine entrance) sends its walks along it: route maps a target to the next stop. */
     public TaskWalkTarget via(java.util.function.BiFunction<Villager,BlockPos,BlockPos> route){this.route=route;return this;}
@@ -43,6 +46,13 @@ public final class TaskWalkTarget {
         }
         if (!WorkGate.allows(villager) || !villager.level().hasChunkAt(target)) return false;
         var stop = route.apply(villager, target);
+        long now = villager.level().getGameTime();double distance = stop.distToCenterSqr(villager.position());
+        if (!stop.equals(goal)) { goal = stop; closest = distance; progressAt = now; }
+        else if (distance < closest - 1) { closest = distance; progressAt = now; }
+        else if (now - progressAt > STUCK_TICKS) {
+            io.github.umudik.minorlord.storage.Unreachable.report((net.minecraft.server.level.ServerLevel) villager.level(), target);
+            goal = null; release(villager); return false;
+        }
         return offer(memory(villager), new WalkTarget(stop, speed, stop.equals(target) ? arrivalRadius : 1));
     }
 

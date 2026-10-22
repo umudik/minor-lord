@@ -65,8 +65,8 @@ public final class FishermanShoreTask implements WorkSession.Task<Villager>{
     private boolean deliverCatch(Villager v){
         for(var e:WorkResources.contents(VillageInventories.carried(v)).entrySet()){
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
-            if(VillageInventories.fallback(v,home,e.getKey(),amount,false).isEmpty())continue;
-            biteAt=-1;Delivery.fallback(v,home,e.getKey(),amount,walk,false);return true;
+            if(VillageInventories.fallback(v,home,e.getKey(),amount).isEmpty())continue;
+            biteAt=-1;Delivery.fallback(v,home,e.getKey(),amount,walk);return true;
         }return false;
     }
     private void fish(Villager v,ServerLevel level){

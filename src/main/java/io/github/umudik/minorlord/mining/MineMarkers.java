@@ -33,9 +33,9 @@ public final class MineMarkers {
     public static void forget(SignBlockEntity sign,ServerLevel level){var key=GlobalPos.of(level.dimension(),sign.getBlockPos());SITES.remove(key);ENTRANCES.remove(key);}
     public static void clear(){SITES.clear();ENTRANCES.clear();}
     public static boolean entrance(GlobalPos key){return ENTRANCES.contains(key);}
-    /** The entrance nearest to a mine's sign, within the mine's radius. */
-    public static Optional<BlockPos> entrance(Site site){return ENTRANCES.stream().filter(e->e.dimension().equals(site.sign.dimension())
-        &&site.bounds.containsHorizontal(e.pos().getX(),e.pos().getZ())).map(GlobalPos::pos)
+    /** The entrance inside the given village nearest to a mine's sign. */
+    public static Optional<BlockPos> entrance(Site site,io.github.umudik.minorlord.village.VillageBounds village){return ENTRANCES.stream()
+        .filter(e->e.dimension().equals(site.sign.dimension())&&village.contains(e.pos().getX(),e.pos().getZ())).map(GlobalPos::pos)
         .min(Comparator.comparingDouble(p->p.distSqr(site.sign.pos())));}
     public static void restore(Site site){SITES.put(site.sign,site);}
     public static Optional<Site> get(GlobalPos key){return Optional.ofNullable(SITES.get(key));}

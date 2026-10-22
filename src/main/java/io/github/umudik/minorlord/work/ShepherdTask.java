@@ -27,7 +27,7 @@ public final class ShepherdTask implements WorkSession.Task<Villager>{
         for(var e:WorkResources.contents(carry).entrySet())if(!e.getKey().isOf(Items.BUCKET)){
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
             if(!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-            Delivery.fallback(v,home,e.getKey(),amount,walk,false);return WorkSession.Step.CONTINUE;
+            Delivery.fallback(v,home,e.getKey(),amount,walk);return WorkSession.Step.CONTINUE;
         }
         var declaration=MinorLord.VILLAGE_SCOPES.active(home);if(declaration.isEmpty())return WorkSession.Step.CONTINUE;
         var b=declaration.get().bounds();var box=new AABB(b.minX(),level.getMinY(),b.minZ(),b.maxXExclusive(),level.getMaxY(),b.maxZExclusive());

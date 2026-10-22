@@ -455,6 +455,7 @@ Hedef: oyuncunun kurduğu köylerin kendi kendine çalıştığı, pillager haki
 - Chester yerdeki eşyaları kulaktan kulağa ile de öğrenir: köyde 5 saniyeden uzun yerde duran eşyayı gören villager haberi 50 blokta yayar, chester gidip toplar.
 - Smelter ve cook sadece düz fırın kullanır; blast furnace ve smoker armorer/butcher iş bloğudur.
 - Siviller gün boyu çalışır: sabahtan 11000 tick'e kadar WORK, kısa akşam molası (üreme burada) vanilla kalır, gece uyurlar. Askerler her zaman görevde.
+- Villager'lar sadece tabelalı sandıklarla etkileşir; tabelasız sandık (köy altındaki mağara sandığı, eski bırakma sandığı) köyün deposu değildir. Eşleşen sandığı olmayan eşya any sandığına gider ya da taşınır.
 - Önceki kararların yerine geçen noktalar: Miner'a kazı yönünde düz ana koridor (spoke) eklendi, önceki "düz ana koridor reddedildi" kararı geçersiz; dönüş ve geri gidiş bu koridordan olur. Rol ekipmanı için kırılmaz component kararı sandıktan alınan ekipmanda uygulanmaz.
 
 ## Yorumlama notu

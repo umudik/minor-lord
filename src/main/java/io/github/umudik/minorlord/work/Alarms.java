@@ -16,7 +16,7 @@ import net.minecraft.world.phys.AABB;
 public final class Alarms {
     public static final int RANGE=50,RELAY_TICKS=40,FRESH_TICKS=600;
     /** Items lying this long (not just dropped and about to be picked up) are news; seen within SIGHT blocks. */
-    private static final int LYING_TICKS=100,SIGHT=16;
+    public static final int LYING_TICKS=100;private static final int SIGHT=16;
     public enum Kind { ENEMY, ITEMS }
     public record Alarm(BlockPos pos,long heardAt){}
     private static final Map<Kind,Map<UUID,Alarm>> KNOWN=new EnumMap<>(Kind.class);

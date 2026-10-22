@@ -168,8 +168,6 @@ public final class LocalSpawnVillage {
             var face=north?chest.south():chest.north();
             put(face,Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING,north?Direction.SOUTH:Direction.NORTH));text(face,labels[i]);
         }
-        // An unlabelled drop-off chest: put anything here and Chester sorts it.
-        var drop=new BlockPos(cx+16,y,cz);put(drop,Blocks.CHEST.defaultBlockState());VillageInventories.loaded((ChestBlockEntity)level.getBlockEntity(drop),level);
     }
 
     /** Every vanilla workstation per copy (two composters each), plus furnaces and crafting tables next to storage for extra roles. */

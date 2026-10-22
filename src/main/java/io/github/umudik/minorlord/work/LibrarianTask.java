@@ -32,7 +32,7 @@ public final class LibrarianTask implements WorkSession.Task<Villager> {
         for(var e:WorkResources.contents(carry).entrySet())if(!e.getKey().equals(book)){
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
             if(!Delivery.deliverable(v,home,e.getKey(),amount))continue;
-            Delivery.fallback(v,home,e.getKey(),amount,walk,false);
+            Delivery.fallback(v,home,e.getKey(),amount,walk);
             return WorkSession.Step.CONTINUE;
         }
         var attached=(AttachmentTarget)v;var next=attached.getAttached(NEXT_BOOK);

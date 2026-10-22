@@ -51,7 +51,6 @@ public final class Demand {
         if(users==0)return OptionalLong.empty();
         Set<Object> seen=new HashSet<>();
         for(var chest:VillageInventories.chests(level,home)){
-            if(VillageInventories.labels(level,chest).isEmpty())continue;
             var endpoint=LiveChestAccess.resolve(level,chest);if(endpoint.isEmpty()||!Collections.disjoint(seen,endpoint.get().inventoryIdentities()))continue;
             seen.addAll(endpoint.get().inventoryIdentities());
             for(var e:WorkResources.contents(endpoint.get()).entrySet())if(need(registries,e.getKey().toStack()).filter(need.get()::equals).isPresent())held+=e.getValue();
