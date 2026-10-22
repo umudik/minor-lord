@@ -20,7 +20,7 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
     private Map<ItemVariant,Long> costs=Map.of();private Map<ItemVariant,Long> pending=new LinkedHashMap<>();
     /** Planning walks every crafting recipe; while the village stock keeps changing it is redone at most this often. */
     private static final long REPLAN_TICKS=100;
-    private long batches,checked=-1,plannedAt=Long.MIN_VALUE;
+    private long batches,checked=-1,plannedAt=-REPLAN_TICKS;
     private Map<ItemVariant,Long> plannedOutputs=Map.of();
     private final Map<Set<?>,InventoryTransfers.Endpoint<ItemVariant>> targetCache=new HashMap<>();
     public CraftingTask(GlobalPos home,Role role){this.home=home;this.role=role;}

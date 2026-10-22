@@ -64,8 +64,8 @@ public final class RoleController {
         if(managed)WorkPackages.apply(v,Optional.empty());
     }
     /** Extra roles are not vanilla professions: while the name tag stays they hold no job site or profession. */
-    /** The soldier whose brain is ticking on this thread right now (keeps its schedule on duty). */
-    public static final ThreadLocal<Villager> DUTY=new ThreadLocal<>();
+    /** The village worker whose brain is ticking on this thread right now (its schedule follows the workday). */
+    public static final ThreadLocal<Villager> WORKDAY=new ThreadLocal<>();
     /** Warriors and archers: fearless, they never panic or hide. */
     public static boolean soldier(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).filter(r->r==Role.WARRIOR||r==Role.ARCHER).isPresent();}
     public static boolean namedExtraRole(Villager v){return v.hasCustomName()&&RoleNames.find(v.getCustomName().getString()).isPresent();}

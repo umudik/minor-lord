@@ -86,9 +86,9 @@ public final class LocalWorldArena {
         check(!running,"Arena construction already running");
         check(current.getPort()==25578&&current.getLocalIp().equals("127.0.0.1")&&current.getServerDirectory().toAbsolutePath().normalize().toString().endsWith("minor-lord-fabric263-isolated"),"Wrong server");
         try(var backups=java.nio.file.Files.list(current.getServerDirectory().resolve("backups"))){check(backups.anyMatch(p->p.getFileName().toString().startsWith("before-test-arena-")),"World backup required before flattening");}catch(java.io.IOException e){throw new RuntimeException(e);}
-        // Villagers only work in entity-ticking chunks, and stale entities can only be removed once loaded.
-        check(!current.getPlayerList().getPlayers().isEmpty(),"A player must be online near the arena (225,474)");
         server=current;level=current.overworld();
+        // Villagers only work in entity-ticking chunks: the arena's chunks stay loaded for the test, with or without a player.
+        forceChunks(true);
         var clock=server.registryAccess().lookupOrThrow(Registries.WORLD_CLOCK).getOrThrow(WorldClocks.OVERWORLD);
         level.clockManager().setTotalTicks(clock,6000);level.clockManager().setPaused(clock,true);
         level.getGameRules().set(GameRules.MOB_GRIEFING,true,server);level.getGameRules().set(GameRules.MOB_DROPS,true,server);
@@ -97,6 +97,9 @@ public final class LocalWorldArena {
         column=0;roomIndex=0;observed=0;waited=0;cleared=false;running=true;
         ServerTickEvents.END_SERVER_TICK.register(s->{if(!running||s!=server)return;try{tick();}catch(Throwable error){running=false;error.printStackTrace();announce("Test alani kurulumu durdu; yedek korunuyor. Hata inceleniyor.");}});
         announce("Alan yedeklendi. 19 rol odasi + kontrol odasi kuruluyor; test gunduzu sabit.");
+    }
+    private static void forceChunks(boolean forced){
+        for(int cx=X0>>4;cx<=(X1-1)>>4;cx++)for(int cz=Z0>>4;cz<=(Z1-1)>>4;cz++)level.setChunkForced(cx,cz,forced);
     }
     private static boolean inside(BlockPos p){return p.getX()>=X0&&p.getX()<X1&&p.getZ()>=Z0&&p.getZ()<Z1;}
     private static void announce(String message){System.out.println("MINOR_LORD_ARENA "+message);for(var player:server.getPlayerList().getPlayers())player.sendSystemMessage(Component.literal(message));}
@@ -145,7 +148,11 @@ public final class LocalWorldArena {
         }
         observed++;
         if(observed%20==0){for(var r:ROOMS)observe(r);if(observed%200==0)summary();}
-        if(observed>=6000){summary();running=false;announce("5 dakikalik gozlem tamamlandi. Odalar, NPC'ler ve sandiklar inceleme icin kaldi.");}
+        if(observed>=6000){
+            summary();running=false;forceChunks(false);
+            var clock=server.registryAccess().lookupOrThrow(Registries.WORLD_CLOCK).getOrThrow(WorldClocks.OVERWORLD);level.clockManager().setPaused(clock,false);
+            announce("5 dakikalik gozlem tamamlandi. Odalar, NPC'ler ve sandiklar inceleme icin kaldi; zaman yeniden akiyor.");
+        }
     }
     private static void build(Room r){
         for(int dx=0;dx<16;dx++)for(int dz=0;dz<18;dz++)if(dx==0||dx==15||dz==0||dz==17)
