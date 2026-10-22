@@ -22,7 +22,7 @@ public final class ShepherdTask implements WorkSession.Task<Villager>{
     public ShepherdTask(GlobalPos home){this.home=home;}
     @Override public WorkSession.Step step(Villager v){
         var level=(ServerLevel)v.level();GroundItems.collect(v);
-        if(wait>0){wait--;return WorkSession.Step.CONTINUE;}
+        if(wait>0){wait--;return WorkSession.Step.IDLE;}
         var carry=VillageInventories.carried(v);
         for(var e:WorkResources.contents(carry).entrySet())if(!e.getKey().isOf(Items.BUCKET)){
             long amount=Math.min(e.getValue(),e.getKey().getItem().getDefaultMaxStackSize());
@@ -39,9 +39,9 @@ public final class ShepherdTask implements WorkSession.Task<Villager>{
             if(!Delivery.arrived(v,animal.blockPosition())){walk.offer(v,animal.blockPosition(),0.5f,1);return WorkSession.Step.CONTINUE;}
             animal.shear(level,SoundSource.NEUTRAL,new ItemStack(Items.SHEARS));walk.release(v);wait=12;return WorkSession.Step.CONTINUE;
         }
-        var milk=ItemVariant.of(Items.MILK_BUCKET);if(VillageInventories.nearest(v,home,milk,1).isEmpty())return WorkSession.Step.CONTINUE;
+        var milk=ItemVariant.of(Items.MILK_BUCKET);if(VillageInventories.nearest(v,home,milk,1).isEmpty())return WorkSession.Step.IDLE;
         var cow=level.getEntitiesOfClass(Cow.class,box,c->c.isAlive()&&!c.isBaby()).stream().min(Comparator.comparingDouble(c->c.distanceToSqr(v)));
-        if(cow.isEmpty())return WorkSession.Step.CONTINUE;
+        if(cow.isEmpty())return WorkSession.Step.IDLE;
         var bucket=ItemVariant.of(Items.BUCKET);if(!WorkResources.gather(v,home,bucket,1,walk))return WorkSession.Step.CONTINUE;
         if(!Delivery.arrived(v,cow.get().blockPosition())){walk.offer(v,cow.get().blockPosition(),0.5f,1);return WorkSession.Step.CONTINUE;}
         InventoryConversions.convertInPlace(carry,Map.of(bucket,1L),Map.of(milk,1L),

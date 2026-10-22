@@ -41,7 +41,7 @@ public final class CombatTask implements WorkSession.Task<Villager> {
     public static void forget(UUID id){CHECKED.remove(id);CLAIMED.remove(id);}
     @Override public WorkSession.Step step(Villager v){
         var level=(ServerLevel)v.level();var declaration=MinorLord.VILLAGE_SCOPES.active(home);if(declaration.isEmpty())return WorkSession.Step.CONTINUE;
-        var b=declaration.get().bounds();var alarm=Alarms.known(v);
+        var b=declaration.get().bounds();var alarm=Alarms.known(v,Alarms.Kind.ENEMY);
         // Enemies it can see, around the village or anywhere nearby once it answered an alarm. A mob in a cave
         // under the rock is not seen, so it is not chased.
         var candidates=level.getEntitiesOfClass(LivingEntity.class,v.getBoundingBox().inflate(24),e->hostile(e)
@@ -54,14 +54,14 @@ public final class CombatTask implements WorkSession.Task<Villager> {
             // Word of a fight: go there; arriving with no enemy in sight means it is over for this soldier.
             if(alarm.isPresent()){
                 var at=alarm.get().pos();
-                if(at.distToCenterSqr(v.position())<=36)Alarms.resolved(v);
+                if(at.distToCenterSqr(v.position())<=36)Alarms.resolved(v,Alarms.Kind.ENEMY);
                 else{walk.offer(v,at,0.7f,2);return WorkSession.Step.CONTINUE;}
             }
             // Quiet: gather and bring home the loot, then better gear, then the rounds.
             if(!loot.step(v,home,walk)&&!armory.step(v,home,walk))patrol(v,level,b);
             return WorkSession.Step.CONTINUE;
         }
-        Alarms.raise(v,target.blockPosition());CLAIMED.remove(v.getUUID());patrolTarget=null;
+        Alarms.raise(v,Alarms.Kind.ENEMY,target.blockPosition());CLAIMED.remove(v.getUUID());patrolTarget=null;
         double range=role==Role.ARCHER?12:2;
         if(target.distanceToSqr(v)>range*range||!v.hasLineOfSight(target)){walk.offer(v,target.blockPosition(),0.6f,1);return WorkSession.Step.CONTINUE;}
         walk.release(v);v.getLookControl().setLookAt(target,30,30);

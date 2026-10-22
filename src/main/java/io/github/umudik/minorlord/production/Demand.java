@@ -16,17 +16,17 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * Gear is made for the villagers who use it: the village keeps as many melee weapons as warriors, bows as archers,
- * pickaxes as miners, and each armor piece as warriors, archers and miners together. Counted are the labelled
+ * pickaxes as miners, axes as timbers, and each armor piece as warriors, archers, miners and timbers together. Counted are the labelled
  * chests plus what members wear. Products nobody uses keep the old per-product limit (StockLimits).
  */
 public final class Demand {
     public enum Need {
-        MELEE(EquipmentSlot.MAINHAND),BOW(EquipmentSlot.MAINHAND),PICKAXE(EquipmentSlot.MAINHAND),
+        MELEE(EquipmentSlot.MAINHAND),BOW(EquipmentSlot.MAINHAND),PICKAXE(EquipmentSlot.MAINHAND),AXE(EquipmentSlot.MAINHAND),
         HEAD(EquipmentSlot.HEAD),CHEST(EquipmentSlot.CHEST),LEGS(EquipmentSlot.LEGS),FEET(EquipmentSlot.FEET);
         public final EquipmentSlot slot;
         Need(EquipmentSlot slot){this.slot=slot;}
-        boolean usedBy(Role role){return switch(this){case MELEE->role==Role.WARRIOR;case BOW->role==Role.ARCHER;case PICKAXE->role==Role.MINER;default->Armory.uses(role);};}
-        Role judge(){return switch(this){case BOW->Role.ARCHER;case PICKAXE->Role.MINER;default->Role.WARRIOR;};}
+        boolean usedBy(Role role){return switch(this){case MELEE->role==Role.WARRIOR;case BOW->role==Role.ARCHER;case PICKAXE->role==Role.MINER;case AXE->role==Role.TIMBER;default->Armory.uses(role);};}
+        Role judge(){return switch(this){case BOW->Role.ARCHER;case PICKAXE->Role.MINER;case AXE->Role.TIMBER;default->Role.WARRIOR;};}
     }
     private Demand(){}
 

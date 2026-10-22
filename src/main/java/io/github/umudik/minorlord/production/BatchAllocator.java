@@ -32,46 +32,60 @@ public final class BatchAllocator {
             throw new IllegalArgumentException("A real recipe must declare nonempty ingredients");
         }
         if (workBudget <= 0) throw new IllegalArgumentException("Positive explicit work budget required");
+        // Only resources some ingredient accepts can carry flow. Each match is tested once here, not per search step,
+        // and a recipe with an ingredient nothing accepts is answered at once.
+        var resources = new ArrayList<T>();
+        var accepts = new ArrayList<boolean[]>();
+        var covered = new boolean[ingredients.size()];
         long total = 0;
         for (var entry : available.entrySet()) {
             Objects.requireNonNull(entry.getKey(), "resource");
             if (entry.getValue() == null || entry.getValue() < 0) {
                 throw new IllegalArgumentException("Negative or missing resource amount");
             }
+            if (entry.getValue() == 0) continue;
+            var row = new boolean[ingredients.size()];
+            boolean used = false;
+            for (int ingredient = 0; ingredient < ingredients.size(); ingredient++) {
+                if (ingredients.get(ingredient).test(entry.getKey())) row[ingredient] = covered[ingredient] = used = true;
+            }
+            if (!used) continue;
+            resources.add(entry.getKey());
+            accepts.add(row);
             total = Math.addExact(total, entry.getValue());
         }
-        var resources = new ArrayList<>(available.keySet());
+        for (boolean each : covered) if (!each) return new Allocation<>(0, List.of(), Map.of());
         long low = 0;
         long high = Math.min(workBudget, total / ingredients.size());
         while (low < high) {
             long span = high - low;
             long middle = low + span / 2 + span % 2;
-            if (solve(ingredients, available, resources, middle) != null) low = middle;
+            if (solve(ingredients.size(), available, resources, accepts, middle) != null) low = middle;
             else high = middle - 1;
         }
         if (low == 0) return new Allocation<>(0, List.of(), Map.of());
-        return Objects.requireNonNull(solve(ingredients, available, resources, low));
+        return Objects.requireNonNull(solve(ingredients.size(), available, resources, accepts, low));
     }
 
-    private static <T> Allocation<T> solve(List<Predicate<T>> ingredients, Map<T, Long> available,
-                                          List<T> resources, long batches) {
+    private static <T> Allocation<T> solve(int ingredients, Map<T, Long> available, List<T> resources,
+                                          List<boolean[]> accepts, long batches) {
         int source = 0;
         int firstResource = 1;
         int firstIngredient = firstResource + resources.size();
-        int sink = firstIngredient + ingredients.size();
+        int sink = firstIngredient + ingredients;
         long[][] remaining = new long[sink + 1][sink + 1];
         for (int resource = 0; resource < resources.size(); resource++) {
             remaining[source][firstResource + resource] = available.get(resources.get(resource));
-            for (int ingredient = 0; ingredient < ingredients.size(); ingredient++) {
-                if (ingredients.get(ingredient).test(resources.get(resource))) {
+            for (int ingredient = 0; ingredient < ingredients; ingredient++) {
+                if (accepts.get(resource)[ingredient]) {
                     remaining[firstResource + resource][firstIngredient + ingredient] = batches;
                 }
             }
         }
-        for (int ingredient = 0; ingredient < ingredients.size(); ingredient++) {
+        for (int ingredient = 0; ingredient < ingredients; ingredient++) {
             remaining[firstIngredient + ingredient][sink] = batches;
         }
-        long required = Math.multiplyExact(batches, ingredients.size());
+        long required = Math.multiplyExact(batches, ingredients);
         long flowed = 0;
         while (flowed < required) {
             int[] parent = new int[sink + 1];
@@ -101,7 +115,7 @@ public final class BatchAllocator {
         }
         List<Map<T, Long>> perIngredient = new ArrayList<>();
         Map<T, Long> withdrawals = new LinkedHashMap<>();
-        for (int ingredient = 0; ingredient < ingredients.size(); ingredient++) {
+        for (int ingredient = 0; ingredient < ingredients; ingredient++) {
             Map<T, Long> alternatives = new LinkedHashMap<>();
             for (int resource = 0; resource < resources.size(); resource++) {
                 long used = remaining[firstIngredient + ingredient][firstResource + resource];

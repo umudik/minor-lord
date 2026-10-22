@@ -21,17 +21,19 @@ public final class MasonTask implements WorkSession.Task<Villager>{
         if(delivering){if(WorkResources.deliverAny(v,home,walk))return WorkSession.Step.CONTINUE;delivering=false;}
         if(recipe==null){
             if(WorkResources.deliverAny(v,home,walk))return WorkSession.Step.CONTINUE;
-            if(checked==VillageInventories.revision(home))return WorkSession.Step.CONTINUE;checked=VillageInventories.revision(home);
-            station=WorkResources.station(v,home,s->s.is(Blocks.STONECUTTER)).orElse(null);if(station==null)return WorkSession.Step.CONTINUE;
+            if(checked==VillageInventories.revision(home))return WorkSession.Step.IDLE;checked=VillageInventories.revision(home);
+            station=WorkResources.station(v,home,s->s.is(Blocks.STONECUTTER)).orElse(null);if(station==null)return WorkSession.Step.IDLE;
             outer:for(var holder:RuntimeRecipes.ofType(level.getServer().getRecipeManager(),RecipeType.STONECUTTING)){
                 if(!(holder.value() instanceof StonecutterRecipe candidate))continue;
                 for(var e:WorkResources.available(level,home).entrySet()){
                     var input=new SingleRecipeInput(e.getKey().toStack());if(!candidate.matches(input,level))continue;
-                    var result=candidate.assemble(input);if(result.isEmpty()||!StockLimits.shouldStart(Role.MASON,WorkResources.stock(level,home,ItemVariant.of(result)),result.getMaxStackSize()))continue;
-                    if(VillageInventories.nearest(v,home,ItemVariant.of(result),result.getCount()).isEmpty())continue;
-                    recipe=candidate;ingredient=e.getKey();remaining=e.getValue();break outer;
+                    var result=candidate.assemble(input);if(result.isEmpty())continue;
+                    // Cut only up to the limit in total, never every block the stock holds.
+                    long room=StockLimits.room(Role.MASON,WorkResources.stock(level,home,ItemVariant.of(result)),result.getMaxStackSize()).orElseThrow();
+                    if(room<=0||VillageInventories.nearest(v,home,ItemVariant.of(result),result.getCount()).isEmpty())continue;
+                    recipe=candidate;ingredient=e.getKey();remaining=Math.min(e.getValue(),(room+result.getCount()-1)/result.getCount());break outer;
                 }
-            }if(recipe==null)return WorkSession.Step.CONTINUE;
+            }if(recipe==null)return WorkSession.Step.IDLE;
         }
         if(!WorkResources.gather(v,home,ingredient,1,walk)){
             if(WorkResources.available(level,home).getOrDefault(ingredient,0L)==0&&WorkResources.contents(VillageInventories.carried(v)).getOrDefault(ingredient,0L)==0)recipe=null;
@@ -40,7 +42,7 @@ public final class MasonTask implements WorkSession.Task<Villager>{
         if(!level.hasChunkAt(station)||!level.getBlockState(station).is(Blocks.STONECUTTER)){recipe=null;return WorkSession.Step.CONTINUE;}
         if(!Delivery.arrived(v,station)){walk.offer(v,station,0.5f,1);return WorkSession.Step.CONTINUE;}
         var input=new SingleRecipeInput(ingredient.toStack());if(!recipe.matches(input,level)){recipe=null;return WorkSession.Step.CONTINUE;}
-        var output=recipe.assemble(input);if(VillageInventories.nearest(v,home,ItemVariant.of(output),output.getCount()).isEmpty())return WorkSession.Step.CONTINUE;
+        var output=recipe.assemble(input);if(VillageInventories.nearest(v,home,ItemVariant.of(output),output.getCount()).isEmpty())return WorkSession.Step.IDLE;
         var carry=VillageInventories.carried(v);
         try(var tx=Transaction.openOuter()){
             if(carry.storage().extract(ingredient,1,tx)!=1||carry.storage().insert(ItemVariant.of(output),output.getCount(),tx)!=output.getCount())return WorkSession.Step.CONTINUE;

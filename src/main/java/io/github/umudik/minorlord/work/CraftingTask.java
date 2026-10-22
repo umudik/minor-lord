@@ -18,7 +18,9 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
     private final GlobalPos home;private final Role role;private final TaskWalkTarget walk=new TaskWalkTarget();
     private CraftingRecipe recipe;private CraftingInput input;private BlockPos station;
     private Map<ItemVariant,Long> costs=Map.of();private Map<ItemVariant,Long> pending=new LinkedHashMap<>();
-    private long batches,checked=-1;
+    /** Planning walks every crafting recipe; while the village stock keeps changing it is redone at most this often. */
+    private static final long REPLAN_TICKS=100;
+    private long batches,checked=-1,plannedAt=Long.MIN_VALUE;
     private Map<ItemVariant,Long> plannedOutputs=Map.of();
     private final Map<Set<?>,InventoryTransfers.Endpoint<ItemVariant>> targetCache=new HashMap<>();
     public CraftingTask(GlobalPos home,Role role){this.home=home;this.role=role;}
@@ -74,7 +76,11 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
             if(deficit.isPresent()){
                 if(deficit.getAsLong()<=0)continue;
                 allowed=Math.min(allowed,(deficit.getAsLong()+output.getCount()-1)/output.getCount());
-            }else if(!StockLimits.shouldStart(role,WorkResources.stock(level,home,ItemVariant.of(output)),output.getMaxStackSize()))continue;
+            }else{
+                // Anything else: only up to the per-product limit in total, never as much as the stock allows.
+                var room=StockLimits.room(role,WorkResources.stock(level,home,ItemVariant.of(output)),output.getMaxStackSize());
+                if(room.isPresent()){if(room.getAsLong()<=0)continue;allowed=Math.min(allowed,(room.getAsLong()+output.getCount()-1)/output.getCount());}
+            }
             double value=io.github.umudik.minorlord.production.Demand.value(level.registryAccess(),output);
             if(value<=bestValue)continue;
             var outputs=new LinkedHashMap<ItemVariant,Long>(RecipeRemainders.inspect(candidate,grid));outputs.merge(ItemVariant.of(output),(long)output.getCount(),Math::addExact);
@@ -106,8 +112,8 @@ public final class CraftingTask implements WorkSession.Task<Villager> {
                     Delivery.fallback(v,home,e.getKey(),amount,walk,false);return WorkSession.Step.CONTINUE;
                 }
             }
-            if(checked==VillageInventories.revision(home))return WorkSession.Step.CONTINUE;
-            checked=VillageInventories.revision(home);if(!plan(v))return WorkSession.Step.CONTINUE;
+            if(checked==VillageInventories.revision(home)||level.getGameTime()-plannedAt<REPLAN_TICKS)return WorkSession.Step.IDLE;
+            checked=VillageInventories.revision(home);plannedAt=level.getGameTime();if(!plan(v))return WorkSession.Step.IDLE;
         }
         var held=contents(carry);var supply=available(level);
         for(var e:costs.entrySet())if(held.getOrDefault(e.getKey(),0L)+supply.getOrDefault(e.getKey(),0L)<e.getValue()){

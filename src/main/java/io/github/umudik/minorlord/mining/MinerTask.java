@@ -17,7 +17,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** Real native-tool-speed mining, physical movement and transactional loot into persistent NPC inventory. */
 public final class MinerTask implements WorkSession.Task<Villager> {
-    private final GlobalPos home; private final TaskWalkTarget walk=new TaskWalkTarget();
+    private final GlobalPos home; private final TaskWalkTarget walk=new TaskWalkTarget().via(this::route);
     private MineMarkers.Site site; private long index,retreat=-1,progress; private int spokeBack=-1,spokeOut=-1; private boolean unloading; private BlockPos backfill;
     private final ArrayDeque<BlockPos> vein=new ArrayDeque<>();
     private final Set<BlockPos> queuedOre=new HashSet<>();
@@ -51,7 +51,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
         if(site==null || !MineMarkers.current(site)){site=boundSite(villager,level,home).orElse(null);index=0;retreat=-1;backfill=null;spokeBack=-1;
             // Resume where this mine was left (also after a restart) by walking out along the spoke.
             progress=Optional.ofNullable(((AttachmentTarget)villager).getAttached(PROGRESS)).orElse(0L);spokeOut=progress>0?1:-1;vein.clear();queuedOre.clear();breaking=null;ticks=0;}
-        if(site==null){walk.release(villager);return WorkSession.Step.CONTINUE;}
+        if(site==null){walk.release(villager);return WorkSession.Step.IDLE;}
         if(supportSupply!=null){
             if(!WorkResources.gather(villager,home,supportSupply,supportNeeded,walk)){
                 if(WorkResources.contents(VillageInventories.carried(villager)).getOrDefault(supportSupply,0L)>0
@@ -79,7 +79,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
             // Home in the village with the stock put away: eat and pick up better gear before going back down.
             if(Meals.step(villager,home,walk)||armory.step(villager,home,walk))return WorkSession.Step.CONTINUE;
             // Without a pickaxe there is no mining: wait in the village until one is in a chest.
-            if(!villager.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES))return WorkSession.Step.CONTINUE;
+            if(!villager.getMainHandItem().is(net.minecraft.tags.ItemTags.PICKAXES))return WorkSession.Step.IDLE;
             // Only undeliverable stacks left and no free slot: wait at the village instead of shuttling back and forth.
             if(villager.getInventory().getItems().stream().noneMatch(ItemStack::isEmpty))return WorkSession.Step.CONTINUE;
             if(!Delivery.arrived(villager,site.sign().pos())){walk.offer(villager,site.sign().pos(),0.5f,1);return WorkSession.Step.CONTINUE;}
@@ -141,6 +141,16 @@ public final class MinerTask implements WorkSession.Task<Villager> {
         index++;
         if(index>progress){progress=index;((AttachmentTarget)villager).setAttached(PROGRESS,progress);}
         return WorkSession.Step.CONTINUE;
+    }
+    /**
+     * Between the surface and the mine every walk first goes to the mine's entrance sign; from there the stairs lead
+     * on step by step. Underground means more than one block below the entrance.
+     */
+    private BlockPos route(Villager villager,BlockPos target){
+        var entrance=site==null?null:MineMarkers.entrance(site).orElse(null);
+        if(entrance==null||entrance.distToCenterSqr(villager.position())<=9)return target;
+        boolean below=villager.getBlockY()<entrance.getY()-1,targetBelow=target.getY()<entrance.getY()-1;
+        return below==targetBelow?target:entrance;
     }
     /** Inside the two-wide, three-high corridor volume. */
     private boolean corridor(BlockPos p){
@@ -252,7 +262,7 @@ public final class MinerTask implements WorkSession.Task<Villager> {
         if(!state.getFluidState().isEmpty() || level.getBlockEntity(pos)!=null || state.getDestroySpeed(level,pos)<0
             || (state.requiresCorrectToolForDrops() && !tool.isCorrectToolForDrops(state)))return false;
         if(!pos.equals(breaking)||state!=breakingState){breaking=pos;breakingState=state;ticks=0;}
-        if(++ticks<MiningPattern.ticks(state.getDestroySpeed(level,pos),tool.getDestroySpeed(state),tool.isCorrectToolForDrops(state)))return false;
+        if((ticks+=Activation.elapsed(villager))<MiningPattern.ticks(state.getDestroySpeed(level,pos),tool.getDestroySpeed(state),tool.isCorrectToolForDrops(state)))return false;
         var drops=Block.getDrops(state,level,pos,null,villager,tool);var carried=VillageInventories.carried(villager);
         ItemStack floorMaterial=ItemStack.EMPTY;
         boolean protectFloor=pos.getY()==site.bounds().bottomY()-1;

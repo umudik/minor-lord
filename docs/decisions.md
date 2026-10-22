@@ -447,6 +447,13 @@ Hedef: oyuncunun kurduğu köylerin kendi kendine çalıştığı, pillager haki
 - Ganimet: gerçek item olarak yere düşer; askerler ve oyuncu toplayabilir. Askerler topladığını oyuncunun ilgili sandıklarına taşır; envanteri dolan asker toplamayı bırakır.
 - Pillager: dünyada pillager hakimiyeti olacak, oyuncu ve köylüleri onu kırmaya çalışan taraf. Ekstra raid sistemi yok, vanilla raid yeterli. Tehdit ve ganimet dolu yapılar için yalnız datapack olarak çalışan bir structure paketi düşünülüyor; paket seçilmedi.
 - Ertelendi: oyuncular arası zümrütle ticaret ve kervan. İstenmedi/emin değil: harita.
+- Timber rolü (`timber`/`lumberjack`): baltayı sandıktan alır, köye en yakın doğal ağacı (köy içi veya kenardan 48 blok ötesine kadar orman) kendi balta hızında keser, yapraklarını elle temizler, kütüğe fidan diker; orman yok olmaz. Oyuncunun kütükten yaptığı yapılar kesilmez (doğal yaprak şartı). Balta artık oduncu aletidir; warrior kılıç/mace/trident kullanır.
+- Madenci tünelin değdiği her cevheri kazar; derinliği Mine tabelasının Y'si belirler. Elmas için tabela y16 altında olmalı. Köy madenleri y-15/-18'e indirildi.
+- Kasma için paralel tick reddedildi (dünya verisi thread-safe değil); kök neden profillenip düzeltilir. İlk bulgu: crafter planlaması.
+- İşi olmayan köylü vanilla gibi köy içinde kısa gezinti yapar; iş gelince gezinti anında biter. Chester yerde gördüğü eşyaları da toplayıp yerleştirir.
+- Kalabalık köyler: her villager gerçek entity kalır (sanal/sayısal nüfus yok). Ölçek, uzaktakilerin daha seyrek düşünmesiyle (activation range) aranır; gerçekçi tavan köy başına birkaç yüz villager.
+- Chester yerdeki eşyaları kulaktan kulağa ile de öğrenir: köyde 5 saniyeden uzun yerde duran eşyayı gören villager haberi 50 blokta yayar, chester gidip toplar.
+- Smelter ve cook sadece düz fırın kullanır; blast furnace ve smoker armorer/butcher iş bloğudur.
 - Önceki kararların yerine geçen noktalar: Miner'a kazı yönünde düz ana koridor (spoke) eklendi, önceki "düz ana koridor reddedildi" kararı geçersiz; dönüş ve geri gidiş bu koridordan olur. Rol ekipmanı için kırılmaz component kararı sandıktan alınan ekipmanda uygulanmaz.
 
 ## Yorumlama notu

@@ -36,9 +36,9 @@ public final class LibrarianTask implements WorkSession.Task<Villager> {
             return WorkSession.Step.CONTINUE;
         }
         var attached=(AttachmentTarget)v;var next=attached.getAttached(NEXT_BOOK);
-        if(next!=null&&level.getGameTime()<next)return WorkSession.Step.CONTINUE;
+        if(next!=null&&level.getGameTime()<next)return WorkSession.Step.IDLE;
         var station=WorkResources.station(v,home,s->s.is(Blocks.LECTERN));
-        if(station.isEmpty())return WorkSession.Step.CONTINUE;
+        if(station.isEmpty())return WorkSession.Step.IDLE;
         var registry=level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         var id=attached.getAttached(CHOICE);
         var selected=id==null?Optional.<Holder.Reference<net.minecraft.world.item.enchantment.Enchantment>>empty():registry.get(id);
@@ -49,7 +49,7 @@ public final class LibrarianTask implements WorkSession.Task<Villager> {
             attached.setAttached(CHOICE,selected.get().key().identifier());
         }
         var output=ItemVariant.of(LibrarianBooks.levelOne(selected.get()));
-        if(VillageInventories.nearest(v,home,output,1).isEmpty())return WorkSession.Step.CONTINUE;
+        if(VillageInventories.nearest(v,home,output,1).isEmpty())return WorkSession.Step.IDLE;
         if(!WorkResources.gather(v,home,book,1,walk))return WorkSession.Step.CONTINUE;
         if(!Delivery.arrived(v,station.get())){walk.offer(v,station.get(),0.5f,1);return WorkSession.Step.CONTINUE;}
         var result=InventoryConversions.convertInPlace(carry,Map.of(book,1L),Map.of(output,1L),

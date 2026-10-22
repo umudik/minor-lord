@@ -17,10 +17,15 @@ public final class StockLimits {
         };
     }
 
-    /** This is a pre-production stop threshold, never a reservation or hard output cap. */
     public static boolean shouldStart(Role role, long chestOnlyStock, int actualMaxStackSize) {
+        var room = room(role, chestOnlyStock, actualMaxStackSize);
+        return room.isEmpty() || room.getAsLong() > 0;
+    }
+
+    /** How many more may be made before the chests hold the limit; empty when the role has no limit. */
+    public static OptionalLong room(Role role, long chestOnlyStock, int actualMaxStackSize) {
         if (chestOnlyStock < 0) throw new IllegalArgumentException("Negative chest stock");
         OptionalLong limit = threshold(role, actualMaxStackSize);
-        return limit.isEmpty() || chestOnlyStock < limit.getAsLong();
+        return limit.isEmpty() ? limit : OptionalLong.of(Math.max(0, limit.getAsLong() - chestOnlyStock));
     }
 }

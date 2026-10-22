@@ -35,13 +35,15 @@ public final class SmithingTask implements WorkSession.Task<Villager>{
             for(var template:templates)for(var base:bases)for(var addition:additions){
                 var proposed=new SmithingRecipeInput(template,base,addition);if(!candidate.matches(proposed,level))continue;
                 var output=candidate.assemble(proposed);var variant=ItemVariant.of(output);
+                if(output.isEmpty()||!accepts(output))continue;
+                // Gear: as many as its users lack; anything else: up to the per-product limit in total.
                 var deficit=io.github.umudik.minorlord.production.Demand.deficit(level,home,output);
-                if(output.isEmpty()||!accepts(output)||(deficit.isPresent()?deficit.getAsLong()<=0:!StockLimits.shouldStart(role,WorkResources.stock(level,home,variant),output.getMaxStackSize()))
-                    ||VillageInventories.nearest(v,home,variant,output.getCount()).isEmpty())continue;
+                var room=deficit.isPresent()?deficit:StockLimits.room(role,WorkResources.stock(level,home,variant),output.getMaxStackSize());
+                if(room.isPresent()&&room.getAsLong()<=0||VillageInventories.nearest(v,home,variant,output.getCount()).isEmpty())continue;
                 Map<ItemVariant,Long> required=new LinkedHashMap<>();
                 for(var stack:List.of(template,base,addition))if(!stack.isEmpty())required.merge(ItemVariant.of(stack),1L,Long::sum);
                 long count=required.entrySet().stream().mapToLong(e->available.getOrDefault(e.getKey(),0L)/e.getValue()).min().orElse(0);
-                if(deficit.isPresent())count=Math.min(count,deficit.getAsLong());
+                if(room.isPresent())count=Math.min(count,room.getAsLong());
                 if(count==0)continue;recipe=candidate;input=proposed;costs=required;remaining=count;return true;
             }
         }return false;
@@ -51,8 +53,8 @@ public final class SmithingTask implements WorkSession.Task<Villager>{
         if(delivering){if(WorkResources.deliverAny(v,home,walk))return WorkSession.Step.CONTINUE;delivering=false;}
         if(recipe==null){
             if(WorkResources.deliverAny(v,home,walk))return WorkSession.Step.CONTINUE;
-            if(checked==VillageInventories.revision(home))return WorkSession.Step.CONTINUE;checked=VillageInventories.revision(home);
-            if(!plan(v))return WorkSession.Step.CONTINUE;
+            if(checked==VillageInventories.revision(home))return WorkSession.Step.IDLE;checked=VillageInventories.revision(home);
+            if(!plan(v))return WorkSession.Step.IDLE;
         }
         for(var e:costs.entrySet())if(!WorkResources.gather(v,home,e.getKey(),e.getValue(),walk)){
             if(WorkResources.available(level,home).getOrDefault(e.getKey(),0L)+WorkResources.contents(VillageInventories.carried(v)).getOrDefault(e.getKey(),0L)<e.getValue())recipe=null;
@@ -62,7 +64,7 @@ public final class SmithingTask implements WorkSession.Task<Villager>{
         if(!Delivery.arrived(v,station)){walk.offer(v,station,0.5f,1);return WorkSession.Step.CONTINUE;}
         if(!recipe.matches(input,level)){recipe=null;return WorkSession.Step.CONTINUE;}
         var output=recipe.assemble(input);var variant=ItemVariant.of(output);
-        if(VillageInventories.nearest(v,home,variant,output.getCount()).isEmpty())return WorkSession.Step.CONTINUE;
+        if(VillageInventories.nearest(v,home,variant,output.getCount()).isEmpty())return WorkSession.Step.IDLE;
         if(InventoryConversions.convertInPlace(VillageInventories.carried(v),costs,Map.of(variant,(long)output.getCount()),
             ()->Delivery.arrived(v,station)&&level.getBlockState(station).is(Blocks.SMITHING_TABLE))==InventoryConversions.Result.PRODUCED){
             delivering=true;if(--remaining==0)recipe=null;

@@ -17,12 +17,15 @@ public final class TaskWalkTarget {
     }
 
     private WalkTarget issued;
+    private java.util.function.BiFunction<Villager,BlockPos,BlockPos> route=(villager,target)->target;
+    /** A role that knows the way (a mine entrance) sends its walks along it: route maps a target to the next stop. */
+    public TaskWalkTarget via(java.util.function.BiFunction<Villager,BlockPos,BlockPos> route){this.route=route;return this;}
 
-    /** Refuses to steal an existing foreign target, even at the same position. */
+    /** Refuses to steal an existing foreign target, even at the same position; an idle stroll always gives way to work. */
     public boolean offer(Memory memory, WalkTarget target) {
         Objects.requireNonNull(memory);
         Objects.requireNonNull(target);
-        if (memory.get().filter(current -> current != issued).isPresent()) return false;
+        if (memory.get().filter(current -> current != issued && !Idle.stroll(current)).isPresent()) return false;
         issued = target;
         memory.set(target);
         return true;
@@ -39,7 +42,8 @@ public final class TaskWalkTarget {
             throw new IllegalArgumentException("Explicit positive speed and nonnegative arrival radius required");
         }
         if (!WorkGate.allows(villager) || !villager.level().hasChunkAt(target)) return false;
-        return offer(memory(villager), new WalkTarget(target, speed, arrivalRadius));
+        var stop = route.apply(villager, target);
+        return offer(memory(villager), new WalkTarget(stop, speed, stop.equals(target) ? arrivalRadius : 1));
     }
 
     public void release(Villager villager) {

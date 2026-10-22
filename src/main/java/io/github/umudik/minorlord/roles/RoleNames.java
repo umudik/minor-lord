@@ -12,6 +12,7 @@ public final class RoleNames {
             case "smelter" -> Optional.of(Role.SMELTER);
             case "warrior" -> Optional.of(Role.WARRIOR);
             case "archer" -> Optional.of(Role.ARCHER);
+            case "timber", "lumberjack" -> Optional.of(Role.TIMBER);
             default -> Optional.empty();
         };
     }

@@ -39,7 +39,7 @@ public final class FishermanShoreTask implements WorkSession.Task<Villager>{
             if(v.blockPosition().distSqr(target)>1){walk.offer(v,target,0.5f,0);biteAt=-1;}else{walk.release(v);fish(v,level);}
             return WorkSession.Step.CONTINUE;
         }}
-        if(level.getGameTime()<retryAt)return WorkSession.Step.CONTINUE;
+        if(level.getGameTime()<retryAt)return WorkSession.Step.IDLE;
         var bounds=declaration.get().bounds();
         if(!bounds.equals(scanned)){scanned=bounds;x=bounds.minX();z=bounds.minZ();best=null;nearest=Double.POSITIVE_INFINITY;}
         for(int n=0;n<32;n++){

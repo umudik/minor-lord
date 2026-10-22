@@ -19,6 +19,9 @@ class RolePolicyTest {
         assertEquals(80, StockLimits.threshold(Role.MASON, 16).orElseThrow());
         assertTrue(StockLimits.shouldStart(Role.MASON, 79, 16));
         assertFalse(StockLimits.shouldStart(Role.MASON, 80, 16));
+        assertEquals(3, StockLimits.room(Role.TOOLSMITH, 2, 1).orElseThrow());
+        assertEquals(0, StockLimits.room(Role.TOOLSMITH, 9, 1).orElseThrow());
+        assertTrue(StockLimits.room(Role.COOK, 100, 64).isEmpty());
         assertTrue(StockLimits.threshold(Role.COOK, 64).isEmpty());
         assertTrue(StockLimits.shouldStart(Role.COOK, Long.MAX_VALUE, 64));
         assertTrue(StockLimits.threshold(Role.CLERIC, 1).isEmpty());

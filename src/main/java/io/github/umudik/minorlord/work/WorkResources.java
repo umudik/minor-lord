@@ -39,17 +39,19 @@ public final class WorkResources {
                 ()->Delivery.arrived(v,p)&&VillageInventories.matches(level,p,item));walk.release(v);return false;
         }return false;
     }
-    public static Optional<BlockPos> station(Villager v,GlobalPos home,Predicate<BlockState> matches){
+    public static Optional<BlockPos> station(Villager v,GlobalPos home,Predicate<BlockState> matches){return station(v,home,matches,p->true);}
+    /** The nearest matching workstation the caller may use (e.g. one no other worker has claimed). */
+    public static Optional<BlockPos> station(Villager v,GlobalPos home,Predicate<BlockState> matches,Predicate<BlockPos> usable){
         var level=(ServerLevel)v.level();List<BlockPos> origins=new ArrayList<>(VillageInventories.chests(level,home));origins.add(v.blockPosition());
         BlockPos best=null;double distance=Double.POSITIVE_INFINITY;
         var declaration=io.github.umudik.minorlord.MinorLord.VILLAGE_SCOPES.active(home);if(declaration.isEmpty())return Optional.empty();
         // A natural profession works at the workstation it claimed through vanilla, wherever it is in the village.
         var claimed=v.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.JOB_SITE)
             .filter(job->job.dimension().equals(level.dimension())).map(GlobalPos::pos)
-            .filter(p->declaration.get().bounds().contains(p.getX(),p.getZ())&&level.hasChunkAt(p)&&matches.test(level.getBlockState(p)));
+            .filter(p->declaration.get().bounds().contains(p.getX(),p.getZ())&&level.hasChunkAt(p)&&matches.test(level.getBlockState(p))&&usable.test(p));
         if(claimed.isPresent())return claimed;
         for(var origin:origins)for(var p:BlockPos.betweenClosed(origin.offset(-4,-2,-4),origin.offset(4,2,4))){
-            if(!declaration.get().bounds().contains(p.getX(),p.getZ())||!level.hasChunkAt(p)||!matches.test(level.getBlockState(p)))continue;
+            if(!declaration.get().bounds().contains(p.getX(),p.getZ())||!level.hasChunkAt(p)||!matches.test(level.getBlockState(p))||!usable.test(p))continue;
             if(p.distToCenterSqr(v.position())<distance){best=p.immutable();distance=p.distToCenterSqr(v.position());}
         }return Optional.ofNullable(best);
     }

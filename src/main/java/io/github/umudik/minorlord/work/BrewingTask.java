@@ -67,7 +67,7 @@ public final class BrewingTask implements WorkSession.Task<Villager>{
                         if(!WorkResources.targets(v,home,outputs(choice)))continue;
                         job=choice;attached.setAttached(JOB,job);OWNERS.put(key,v.getUUID());break outer;
                     }
-            }if(job==null)return WorkSession.Step.CONTINUE;
+            }if(job==null)return WorkSession.Step.IDLE;
         }
         // The claim stayed behind with the old dimension's entity; the machine keeps its real items.
         if(!job.machine.dimension().equals(level.dimension())){attached.removeAttached(JOB);return WorkSession.Step.CONTINUE;}
@@ -105,7 +105,7 @@ public final class BrewingTask implements WorkSession.Task<Villager>{
             InventoryTransfers.moveExact(carry,slot(machine,level,4),fuel.get(),1,()->Delivery.arrived(v,machine.getBlockPos()));return WorkSession.Step.CONTINUE;
         }
         int targetSlot=machine.getItem(3).isEmpty()?3:0;
-        if(targetSlot==0&&!machine.getItem(0).isEmpty())return WorkSession.Step.CONTINUE;
+        if(targetSlot==0&&!machine.getItem(0).isEmpty())return WorkSession.Step.IDLE;
         var ingredient=ItemVariant.of(targetSlot==3?job.reagent:job.input);
         if(!WorkResources.gather(v,home,ingredient,1,walk))return WorkSession.Step.CONTINUE;
         if(!WorkResources.targets(v,home,outputs(job)))return WorkSession.Step.CONTINUE;

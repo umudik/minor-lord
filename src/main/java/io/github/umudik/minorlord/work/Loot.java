@@ -12,8 +12,8 @@ import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.Items;
 
 /**
- * Soldiers gather the real drops they can see after a fight and carry them to the matching village chests (or an any
- * chest). A drop they cannot reach is given up after GIVE_UP_TICKS. A full inventory stops gathering and sends them
+ * Soldiers (after a fight) and chesters gather the real drops they can see and carry them to the matching village
+ * chests (or an any chest). A drop they cannot reach is given up after GIVE_UP_TICKS. A full inventory stops gathering and sends them
  * home with it. Archers keep the arrows they pick up as ammunition.
  */
 final class Loot {

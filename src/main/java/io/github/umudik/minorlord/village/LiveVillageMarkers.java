@@ -33,7 +33,8 @@ public final class LiveVillageMarkers {
     }
     public static void removed(ServerLevel level,net.minecraft.core.BlockPos pos){
         var key=GlobalPos.of(level.dimension(),pos);
-        if(MinorLord.VILLAGE_SCOPES.active(key).isEmpty()&&io.github.umudik.minorlord.mining.MineMarkers.get(key).isEmpty())return;
+        if(MinorLord.VILLAGE_SCOPES.active(key).isEmpty()&&io.github.umudik.minorlord.mining.MineMarkers.get(key).isEmpty()
+            &&!io.github.umudik.minorlord.mining.MineMarkers.entrance(key))return;
         MinorLord.VILLAGE_SCOPES.remove(key);MinorLord.VILLAGE_WALLS.forget(key);
         io.github.umudik.minorlord.mining.MineMarkers.remove(key);
         VillageData.village(level.getServer(),key,java.util.Optional.empty());VillageData.mine(level.getServer(),key,java.util.Optional.empty());

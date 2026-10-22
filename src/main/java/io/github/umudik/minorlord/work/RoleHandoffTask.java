@@ -12,7 +12,7 @@ public final class RoleHandoffTask implements WorkSession.Task<Villager> {
     private final GlobalPos home;private final Role role;private final WorkSession.Task<Villager> next;private final TaskWalkTarget walk=new TaskWalkTarget();
     public RoleHandoffTask(GlobalPos home,Role role,WorkSession.Task<Villager> next){this.home=home;this.role=role;this.next=next;}
     @Override public WorkSession.Step step(Villager v){
-        v.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.NEAREST_HOSTILE).ifPresent(enemy->Alarms.raise(v,enemy.blockPosition()));
+        v.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.NEAREST_HOSTILE).ifPresent(enemy->Alarms.raise(v,Alarms.Kind.ENEMY,enemy.blockPosition()));
         Alarms.relay(v);
         // Eating comes first; a starving villager does no work until it has eaten. Miners eat on their trip home.
         if(role!=Role.MINER&&Meals.step(v,home,walk))return WorkSession.Step.CONTINUE;
@@ -29,7 +29,9 @@ public final class RoleHandoffTask implements WorkSession.Task<Villager> {
             if(role==null){RoleController.handoffFinished(v,(ServerLevel)v.level());return WorkSession.Step.FINISHED;}
             return WorkSession.Step.CONTINUE;
         }
-        return next==null?WorkSession.Step.FINISHED:next.step(v);
+        if(next==null)return WorkSession.Step.FINISHED;
+        var step=next.step(v);if(step==WorkSession.Step.IDLE)Idle.wander(v,home);
+        return step;
     }
     @Override public void pause(Villager v){walk.release(v);if(next!=null)next.pause(v);}
 }

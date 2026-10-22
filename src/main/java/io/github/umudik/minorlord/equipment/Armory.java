@@ -22,8 +22,9 @@ import net.minecraft.world.item.enchantment.*;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * Warriors, archers and miners equip the best real gear in their village chests, judged by vanilla values: attack
- * damage and Sharpness, bow enchantments, pickaxe speed on stone and Efficiency, armor, toughness and Protection.
+ * Warriors, archers, miners and timbers equip the best real gear in their village chests, judged by vanilla values:
+ * attack damage and Sharpness, bow enchantments, pickaxe speed on stone or axe speed on logs and Efficiency, armor,
+ * toughness and Protection. Axes are timber tools; warriors fight with swords, maces and tridents.
  * The replaced piece goes back into the same chest (or is carried home, or dropped), so nothing is lost. Gear from
  * chests wears like vanilla and drops when its wearer dies. Generated gear from older versions is never stored.
  */
@@ -34,7 +35,7 @@ public final class Armory {
     private final Role role;private Upgrade pending;private long nextCheck;
     public Armory(Role role){this.role=role;}
 
-    public static boolean uses(Role role){return role==Role.WARRIOR||role==Role.ARCHER||role==Role.MINER;}
+    public static boolean uses(Role role){return role==Role.WARRIOR||role==Role.ARCHER||role==Role.MINER||role==Role.TIMBER;}
 
     private static int level(HolderLookup.Provider world,ItemStack stack,ResourceKey<Enchantment> key){
         return world.lookupOrThrow(Registries.ENCHANTMENT).get(key).map(h->stack.getEnchantments().getLevel(h)).orElse(0);
@@ -48,12 +49,13 @@ public final class Armory {
                 return 1+level(world,stack,Enchantments.POWER)+0.3*level(world,stack,Enchantments.PUNCH)
                     +0.5*level(world,stack,Enchantments.FLAME)+0.5*level(world,stack,Enchantments.INFINITY);
             }
-            if(role==Role.MINER){
-                if(!stack.is(ItemTags.PICKAXES))return -1;
+            if(role==Role.MINER||role==Role.TIMBER){
+                boolean miner=role==Role.MINER;
+                if(!stack.is(miner?ItemTags.PICKAXES:ItemTags.AXES))return -1;
                 int efficiency=level(world,stack,Enchantments.EFFICIENCY);
-                return stack.getDestroySpeed(Blocks.STONE.defaultBlockState())+(efficiency>0?efficiency*efficiency+1:0);
+                return stack.getDestroySpeed((miner?Blocks.STONE:Blocks.OAK_LOG).defaultBlockState())+(efficiency>0?efficiency*efficiency+1:0);
             }
-            if(!(stack.is(ItemTags.SWORDS)||stack.is(ItemTags.AXES)||stack.is(Items.MACE)||stack.is(Items.TRIDENT)))return -1;
+            if(!(stack.is(ItemTags.SWORDS)||stack.is(Items.MACE)||stack.is(Items.TRIDENT)))return -1;
             return meleeValue(world,stack);
         }
         var equippable=stack.get(DataComponents.EQUIPPABLE);if(equippable==null||equippable.slot()!=slot)return -1;

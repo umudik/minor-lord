@@ -161,9 +161,10 @@ public final class RoleController {
             case CLERIC -> new BrewingTask(home);
             case FISHERMAN -> new FishermanShoreTask(home);
             case BUTCHER -> new ButcherTask(home);
+            case TIMBER -> new TimberTask(home);
             default -> null;
         };
         if(task!=null){MinorLord.WORK_SESSIONS.install(villager.getUUID(),role.get(),new RoleHandoffTask(home,role.get(),task));WorkPackages.apply(villager,role);}
     }
-    public static boolean extra(Role role){return switch(role){case MINER,CHESTER,COOK,SMELTER,WARRIOR,ARCHER->true;default->false;};}
+    public static boolean extra(Role role){return switch(role){case MINER,CHESTER,COOK,SMELTER,WARRIOR,ARCHER,TIMBER->true;default->false;};}
 }

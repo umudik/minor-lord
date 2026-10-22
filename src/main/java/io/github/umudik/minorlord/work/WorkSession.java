@@ -5,7 +5,8 @@ import java.util.Objects;
 /** Keeps the same task across fear/rest pauses; this controller never owns or deletes item stacks. */
 public final class WorkSession<C> {
     public enum State { READY, RUNNING, PAUSED, FINISHED, FAILED }
-    public enum Step { CONTINUE, FINISHED }
+    /** IDLE: nothing to do right now; the villager may look alive (Idle) until work turns up. */
+    public enum Step { CONTINUE, IDLE, FINISHED }
 
     public interface Task<C> {
         Step step(C context);
